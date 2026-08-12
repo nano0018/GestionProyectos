@@ -1,0 +1,10 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ProjectDashboard from '../components/ProjectDashboard';
+---
+
+<Layout title="TaskFlow Pro - Seguimiento de Proyectos React + Astro + Supabase">
+	<main id="app-container">
+		<ProjectDashboard client:only="react" />
+	</main>
+</Layout>

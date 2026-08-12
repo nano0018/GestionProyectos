@@ -1,0 +1,32 @@
+---
+import '../styles/global.css';
+
+interface Props {
+	title?: string;
+  description?: string;
+}
+
+const { 
+  title = "TaskFlow Pro - Seguimiento de Proyectos con Supabase", 
+  description = "Sistema moderno de gestión y seguimiento de proyectos y actividades con diagrama de Gantt, dependencias y control de acceso granular por usuario en Supabase." 
+} = Astro.props;
+---
+
+<!dnctype html>
+<html lang="es">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="generator" content={Astro.generator} />
+    
+    <!-- SEO Meta Tags -->
+		<title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="keywords" content="proyectos, actividades, supabase, react, astro, gantt, seguimiento de proyectos" />
+    <meta name="theme-color" content="#0b0f19" />
+	</head>
+	<body>
+		<slot />
+	</body>
+</html>
