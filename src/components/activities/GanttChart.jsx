@@ -21,11 +21,12 @@ export default function GanttChart({ activities }) {
 
   // Deadline is always the farthest end date among activities
   const deadlineDateStr = calculatedMaxEndDate.toISOString().split('T')[0];
+  const inicioDateStr = minDate.toISOString().split('T')[0];
   const deadlineDateObj = new Date(deadlineDateStr);
 
   // Ensure overall timeline display spans past deadline date
   const maxDate = new Date(Math.max(calculatedMaxEndMs, deadlineDateObj.getTime()));
-  maxDate.setDate(maxDate.getDate() + 4); // padding
+  maxDate.setDate(maxDate.getDate() + 2); // padding
 
   const totalTimeMs = Math.max(maxDate.getTime() - minDate.getTime(), 86400000);
   const totalDays = Math.max(Math.ceil(totalTimeMs / (1000 * 60 * 60 * 24)), 1);
@@ -495,7 +496,7 @@ export default function GanttChart({ activities }) {
               }}
             >
               <Flag size={10} />
-              <span>INICIO ({scaleColumns[0]?.label})</span>
+              <span>INICIO ({inicioDateStr})</span>
             </div>
 
             {/* HOY badge */}

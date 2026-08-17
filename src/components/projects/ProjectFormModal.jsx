@@ -22,6 +22,21 @@ export default function ProjectFormModal({ isOpen, onClose, onSave, projectToEdi
 
   if (!isOpen) return null;
 
+  if (!currentUser) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center', padding: '2rem' }}>
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
+            Debes iniciar sesión para crear o editar un proyecto.
+          </p>
+          <button onClick={onClose} className="btn-secondary" style={{ marginTop: '1rem' }}>
+            Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');

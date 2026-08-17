@@ -10,8 +10,36 @@ export const isSupabaseConfigured = Boolean(
 );
 
 export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true
+      }
+    })
   : null;
+
+const SESSION_EXPIRY_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
+const SESSION_STARTED_KEY = 'supabase_session_started_at';
+
+export const markSessionStart = () => {
+  if (typeof window !== 'undefined' && !localStorage.getItem(SESSION_STARTED_KEY)) {
+    localStorage.setItem(SESSION_STARTED_KEY, Date.now().toString());
+  }
+};
+
+export const isSessionExpired = () => {
+  if (typeof window === 'undefined') return false;
+  const started = localStorage.getItem(SESSION_STARTED_KEY);
+  if (!started) return false;
+  return Date.now() - parseInt(started, 10) > SESSION_EXPIRY_MS;
+};
+
+export const clearSessionStart = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(SESSION_STARTED_KEY);
+  }
+};
 
 // Mock storage keys for demo preview mode when Supabase credentials are not added yet
 const DEMO_PROJECTS_KEY = 'demo_tracker_projects';

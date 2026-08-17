@@ -17,7 +17,10 @@ import {
   getDemoProjects, 
   getDemoActivities,
   saveDemoProjects,
-  saveDemoActivities
+  saveDemoActivities,
+  markSessionStart,
+  isSessionExpired,
+  clearSessionStart
 } from '../lib/supabase';
 
 import { 
@@ -59,22 +62,43 @@ export default function ProjectDashboard() {
   // 1. Initial Auth & Data Load
   useEffect(() => {
     if (isSupabaseConfigured && supabase) {
+      // Check if session has expired
+      if (isSessionExpired()) {
+        supabase.auth.signOut();
+        clearSessionStart();
+        return;
+      }
+
       // Supabase auth listener
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) {
           setUser({ id: session.user.id, email: session.user.email });
+          markSessionStart();
         }
       });
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         if (session?.user) {
           setUser({ id: session.user.id, email: session.user.email });
+          markSessionStart();
         } else {
           setUser(null);
+          clearSessionStart();
         }
       });
 
-      return () => subscription.unsubscribe();
+      // Periodic session expiry check (every 5 minutes)
+      const expiryCheck = setInterval(() => {
+        if (isSessionExpired()) {
+          supabase.auth.signOut();
+          clearSessionStart();
+        }
+      }, 5 * 60 * 1000);
+
+      return () => {
+        subscription.unsubscribe();
+        clearInterval(expiryCheck);
+      };
     } else {
       // Demo Mode initial user
       const initialUser = getInitialDemoUser();
@@ -84,7 +108,12 @@ export default function ProjectDashboard() {
 
   // 2. Load Projects
   const fetchProjects = async () => {
-    if (isSupabaseConfigured && supabase && user) {
+    if (!user) {
+      setProjects([]);
+      return;
+    }
+
+    if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase
         .from('proyectos')
         .select('*')
@@ -106,7 +135,10 @@ export default function ProjectDashboard() {
 
   // 3. Load Activities when a project is selected
   const fetchActivities = async (projectId) => {
-    if (!projectId) return;
+    if (!projectId || !user) {
+      setActivities([]);
+      return;
+    }
 
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase
@@ -387,7 +419,11 @@ export default function ProjectDashboard() {
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
     }
+    clearSessionStart();
     setUser(null);
+    setProjects([]);
+    setActivities([]);
+    setSelectedProject(null);
   };
 
   // Filtered projects
@@ -399,6 +435,36 @@ export default function ProjectDashboard() {
   const isCurrentProjectOwner = selectedProject && user && selectedProject.uuid_usuario_dueno === user.id;
   const isCurrentProjectAuthorized = selectedProject && user && (selectedProject.uuids_usuarios_autorizados || []).includes(user.id);
   const canEditSelectedProject = isCurrentProjectOwner || isCurrentProjectAuthorized;
+
+  // Calculate project duration from activities
+  const getProjectDuration = () => {
+    if (!activities || activities.length === 0) return null;
+
+    const starts = activities.map(a => new Date(a.inicio_actividad).getTime()).filter(t => !isNaN(t));
+    const ends = activities.map(a => new Date(a.fin_actividad).getTime()).filter(t => !isNaN(t));
+    if (starts.length === 0 || ends.length === 0) return null;
+
+    const minStart = Math.min(...starts);
+    const maxEnd = Math.max(...ends);
+
+    const totalDays = Math.round((maxEnd - minStart) / (1000 * 60 * 60 * 24)) + 1;
+
+    // Business days: exclude Saturdays (6) and Sundays (0)
+    let businessDays = 0;
+    const current = new Date(minStart);
+    const end = new Date(maxEnd);
+    while (current <= end) {
+      const day = current.getDay();
+      if (day !== 0 && day !== 6) {
+        businessDays++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    return { totalDays, businessDays };
+  };
+
+  const projectDuration = getProjectDuration();
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -420,7 +486,7 @@ export default function ProjectDashboard() {
       <main style={{ flex: 1, maxWidth: '1280px', width: '100%', margin: '0 auto', padding: '2rem 1.5rem' }}>
         
         {/* Banner if Supabase is not configured yet */}
-        {!isSupabaseConfigured && (
+        {!isSupabaseConfigured && user && (
           <div className="glass-panel" style={{ padding: '1rem 1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderLeft: '4px solid #f59e0b' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
               <Info size={22} color="#f59e0b" />
@@ -469,6 +535,11 @@ export default function ProjectDashboard() {
                 <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                   {selectedProject.descripcion_proyecto || 'Sin descripción.'}
                 </p>
+                {projectDuration && (
+                  <p style={{ fontSize: '0.85rem', color: 'var(--accent-emerald)', marginTop: '0.35rem', fontWeight: 600 }}>
+                    Duración proyecto: {projectDuration.totalDays} días [{projectDuration.businessDays} días hábiles]
+                  </p>
+                )}
               </div>
 
               {/* Activity Actions & Toggle View Mode */}
