@@ -6,12 +6,11 @@ import jsPDF from 'jspdf';
 export default function GanttChart({ activities }) {
   const [scaleMode, setScaleMode] = useState('dias'); // 'dias' | 'semanas' | 'meses'
   const chartRef = useRef(null);
-  const [customDeadline, setCustomDeadline] = useState('');
 
   if (!activities || activities.length === 0) return null;
 
   // Sort activities by start date
-  const sorted = [...activities].sort((a, b) => 
+  const sorted = [...activities].sort((a, b) =>
     new Date(a.inicio_actividad).getTime() - new Date(b.inicio_actividad).getTime()
   );
 
@@ -20,8 +19,8 @@ export default function GanttChart({ activities }) {
   const calculatedMaxEndMs = Math.max(...sorted.map(a => new Date(a.fin_actividad).getTime()));
   const calculatedMaxEndDate = new Date(calculatedMaxEndMs);
 
-  // Determine active project deadline date string (YYYY-MM-DD)
-  const deadlineDateStr = customDeadline || calculatedMaxEndDate.toISOString().split('T')[0];
+  // Deadline is always the farthest end date among activities
+  const deadlineDateStr = calculatedMaxEndDate.toISOString().split('T')[0];
   const deadlineDateObj = new Date(deadlineDateStr);
 
   // Ensure overall timeline display spans past deadline date
@@ -95,7 +94,7 @@ export default function GanttChart({ activities }) {
         const d = new Date(startYear, startMonth + m, 1);
         const diffMs = d.getTime() - minDate.getTime();
         const percent = Math.max(0, Math.min(100, (diffMs / totalTimeMs) * 100));
-        
+
         columns.push({
           label: d.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' }),
           percent
@@ -149,10 +148,10 @@ export default function GanttChart({ activities }) {
 
   return (
     <div ref={chartRef} className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-      
+
       {/* Header Controls */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-glass)' }}>
-        
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <Clock size={20} color="#6366f1" />
           <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>
@@ -161,34 +160,13 @@ export default function GanttChart({ activities }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-          
-          {/* DEADLINE DATE SELECTOR */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(244, 63, 94, 0.1)', padding: '0.35rem 0.75rem', borderRadius: '10px', border: '1px solid rgba(244, 63, 94, 0.3)' }}>
-            <Flag size={15} color="var(--accent-rose)" />
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-rose)' }}>Deadline:</span>
-            <input 
-              type="date"
-              value={deadlineDateStr}
-              onChange={(e) => setCustomDeadline(e.target.value)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-main)',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                outline: 'none',
-                cursor: 'pointer',
-                colorScheme: 'inherit'
-              }}
-            />
-          </div>
 
           {/* SCALE MODE TOGGLE PILLS */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Escala:</span>
-            
+
             <div style={{ display: 'flex', background: 'var(--bg-glass)', padding: '0.25rem', borderRadius: '10px', border: '1px solid var(--border-glass)' }}>
-              <button 
+              <button
                 onClick={() => setScaleMode('dias')}
                 style={{
                   background: scaleMode === 'dias' ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
@@ -205,7 +183,7 @@ export default function GanttChart({ activities }) {
                 Días
               </button>
 
-              <button 
+              <button
                 onClick={() => setScaleMode('semanas')}
                 style={{
                   background: scaleMode === 'semanas' ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
@@ -222,7 +200,7 @@ export default function GanttChart({ activities }) {
                 Semanas
               </button>
 
-              <button 
+              <button
                 onClick={() => setScaleMode('meses')}
                 style={{
                   background: scaleMode === 'meses' ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
@@ -291,8 +269,8 @@ export default function GanttChart({ activities }) {
 
       {/* Gantt Timeline Container */}
       <div style={{ overflowX: 'auto', paddingBottom: '0.75rem' }}>
-        <div style={{ minWidth: '720px', paddingBottom: '1rem' }}>
-          
+        <div style={{ minWidth: '720px' }}>
+
           {/* Header Row Ticks */}
           <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-glass)' }}>
             <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', alignSelf: 'flex-end' }}>
@@ -302,9 +280,9 @@ export default function GanttChart({ activities }) {
             {/* Dynamic Scale Column Labels */}
             <div style={{ position: 'relative', height: scaleMode === 'dias' ? '56px' : '24px', width: '100%' }}>
               {scaleColumns.map((col, idx) => (
-                // In días mode, skip idx=0 — it's shown as the yellow START flag in the timeline area
-                (scaleMode === 'dias' && idx === 0) ? null : (
-                  <div 
+                // Skip idx=0 — it's shown as the yellow START flag in the timeline area
+                idx === 0 ? null : (
+                  <div
                     key={idx}
                     style={{
                       position: 'absolute',
@@ -336,8 +314,8 @@ export default function GanttChart({ activities }) {
           </div>
 
           {/* Activity Rows with Timeline Area */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '0.85rem', position: 'relative' }}>
-            
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '0.85rem', position: 'relative', paddingBottom: '3.5rem' }}>
+
             {sorted.map((act) => {
               const leftPercent = getPositionPercent(act.inicio_actividad);
               const rightPercent = getPositionPercent(act.fin_actividad);
@@ -346,7 +324,7 @@ export default function GanttChart({ activities }) {
               const durationLabel = formatDurationText(days);
 
               return (
-                <div 
+                <div
                   key={act.id_actividad}
                   style={{ display: 'grid', gridTemplateColumns: '300px 1fr', alignItems: 'center', minHeight: '50px' }}
                 >
@@ -361,18 +339,18 @@ export default function GanttChart({ activities }) {
                   </div>
 
                   {/* Right Bar Area with Vertical Guides & Deadline Line */}
-                  <div style={{ 
-                    position: 'relative', 
-                    height: '50px', 
-                    background: 'var(--bg-glass)', 
-                    borderRadius: '8px', 
+                  <div style={{
+                    position: 'relative',
+                    height: '50px',
+                    background: 'var(--bg-glass)',
+                    borderRadius: '8px',
                     border: '1px solid var(--border-glass)',
                     overflow: 'visible'
                   }}>
-                    
+
                     {/* Vertical Scale Grid Lines */}
                     {scaleColumns.map((col, idx) => (
-                      <div 
+                      <div
                         key={idx}
                         style={{
                           position: 'absolute',
@@ -387,7 +365,7 @@ export default function GanttChart({ activities }) {
                     ))}
 
                     {/* Gantt Bar */}
-                    <div 
+                    <div
                       style={{
                         position: 'absolute',
                         left: `${leftPercent}%`,
@@ -422,118 +400,125 @@ export default function GanttChart({ activities }) {
               );
             })}
 
-            {/* OVERALL TIMELINE VERTICAL DEADLINE LINE OVERLAY */}
-            <div 
+            {/* DEADLINE vertical line — ends at badge center */}
+            <div
               style={{
                 position: 'absolute',
                 left: `calc(300px + (100% - 300px) * ${deadlinePercent / 100})`,
                 top: '0px',
-                bottom: '0px',
+                bottom: '17px',
                 width: '2px',
                 background: '#f43f5e',
                 boxShadow: '0 0 12px #f43f5e',
                 zIndex: 10,
                 pointerEvents: 'none'
               }}
-            >
-              {/* Deadline Badge Flag — text below the line */}
-              <div 
-                style={{
-                  position: 'absolute',
-                  bottom: '-28px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  background: '#f43f5e',
-                  color: '#ffffff',
-                  fontSize: '0.65rem',
-                  fontWeight: 800,
-                  padding: '0.18rem 0.5rem',
-                  borderRadius: '9999px',
-                  whiteSpace: 'nowrap',
-                  boxShadow: '0 0 12px rgba(244, 63, 94, 0.7)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.3rem'
-                }}
-              >
-                <Flag size={10} />
-                <span>DEADLINE ({deadlineDateStr})</span>
-              </div>
-            </div>
+            />
 
-            {/* START FLAG — only shown in días mode, replaces idx=0 label */}
-            {scaleMode === 'dias' && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: 'calc(300px)',
-                  top: '0px',
-                  bottom: '0px',
-                  width: '2px',
-                  background: '#f59e0b',
-                  boxShadow: '0 0 10px #f59e0b',
-                  zIndex: 10,
-                  pointerEvents: 'none'
-                }}
-              >
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: '-28px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: '#f59e0b',
-                    color: '#ffffff',
-                    fontSize: '0.65rem',
-                    fontWeight: 800,
-                    padding: '0.18rem 0.5rem',
-                    borderRadius: '9999px',
-                    whiteSpace: 'nowrap',
-                    boxShadow: '0 0 10px rgba(245, 158, 11, 0.7)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.3rem'
-                  }}
-                >
-                  <Flag size={10} />
-                  <span>INICIO ({scaleColumns[0]?.label})</span>
-                </div>
-              </div>
-            )}
+            {/* INICIO vertical line — ends at badge center */}
+            <div
+              style={{
+                position: 'absolute',
+                left: '300px',
+                top: '0px',
+                bottom: '17px',
+                width: '2px',
+                background: '#f59e0b',
+                boxShadow: '0 0 10px #f59e0b',
+                zIndex: 10,
+                pointerEvents: 'none'
+              }}
+            />
 
-            {/* TODAY LINE OVERLAY (IF VISIBLE) */}
+            {/* HOY vertical line — ends at badge center */}
             {isTodayVisible && (
-              <div 
+              <div
                 style={{
                   position: 'absolute',
                   left: `calc(300px + (100% - 300px) * ${todayPercent / 100})`,
                   top: '0px',
-                  bottom: '0px',
+                  bottom: '42px',
                   width: '2px',
                   background: '#10b981',
                   boxShadow: '0 0 10px #10b981',
                   zIndex: 9,
                   pointerEvents: 'none'
                 }}
+              />
+            )}
+
+            {/* DEADLINE badge */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '5px',
+                left: `calc(300px + (100% - 300px) * ${deadlinePercent / 100})`,
+                transform: 'translateX(-50%)',
+                background: '#f43f5e',
+                color: '#ffffff',
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                padding: '0.18rem 0.5rem',
+                borderRadius: '9999px',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 0 12px rgba(244, 63, 94, 0.7)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                zIndex: 12,
+                pointerEvents: 'none'
+              }}
+            >
+              <Flag size={10} />
+              <span>DEADLINE ({deadlineDateStr})</span>
+            </div>
+
+            {/* INICIO badge */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '5px',
+                left: '300px',
+                background: '#f59e0b',
+                color: '#ffffff',
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                padding: '0.18rem 0.5rem',
+                borderRadius: '9999px',
+                whiteSpace: 'nowrap',
+                boxShadow: '0 0 10px rgba(245, 158, 11, 0.7)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                zIndex: 12,
+                pointerEvents: 'none'
+              }}
+            >
+              <Flag size={10} />
+              <span>INICIO ({scaleColumns[0]?.label})</span>
+            </div>
+
+            {/* HOY badge */}
+            {isTodayVisible && (
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '30px',
+                  left: `calc(300px + (100% - 300px) * ${todayPercent / 100})`,
+                  transform: 'translateX(-50%)',
+                  background: '#10b981',
+                  color: '#ffffff',
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  padding: '0.15rem 0.45rem',
+                  borderRadius: '9999px',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 0 10px rgba(16, 185, 129, 0.8)',
+                  zIndex: 12,
+                  pointerEvents: 'none'
+                }}
               >
-                <div 
-                  style={{
-                    position: 'absolute',
-                    bottom: '-28px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: '#10b981',
-                    color: '#ffffff',
-                    fontSize: '0.65rem',
-                    fontWeight: 800,
-                    padding: '0.15rem 0.45rem',
-                    borderRadius: '9999px',
-                    whiteSpace: 'nowrap',
-                    boxShadow: '0 0 10px rgba(16, 185, 129, 0.8)'
-                  }}
-                >
-                  HOY
-                </div>
+                HOY
               </div>
             )}
 
