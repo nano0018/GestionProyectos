@@ -17,6 +17,7 @@ export interface Actividad {
   actividades_dependientes: number[]; // e.g. [3, 4]
   inicio_actividad: string; // YYYY-MM-DD
   fin_actividad: string; // YYYY-MM-DD
+  avance_real: number; // 0..100, % de avance real registrado manualmente
   uuid_usuario_dueno: string;
   uuids_usuarios_autorizados: string[];
   created_at?: string;

@@ -34,7 +34,8 @@ export default function ActivityExcelModal({
         'actividades_predecesoras': '',
         'actividades_dependientes': '2;3',
         'inicio_actividad': formatDate(today),
-        'fin_actividad': addDays(today, 4)
+        'fin_actividad': addDays(today, 4),
+        'avance_real': 0
       },
       {
         'id_actividad': 2,
@@ -42,7 +43,8 @@ export default function ActivityExcelModal({
         'actividades_predecesoras': '1',
         'actividades_dependientes': '4',
         'inicio_actividad': addDays(today, 5),
-        'fin_actividad': addDays(today, 10)
+        'fin_actividad': addDays(today, 10),
+        'avance_real': 0
       },
       {
         'id_actividad': 3,
@@ -50,7 +52,8 @@ export default function ActivityExcelModal({
         'actividades_predecesoras': '1',
         'actividades_dependientes': '4',
         'inicio_actividad': addDays(today, 5),
-        'fin_actividad': addDays(today, 9)
+        'fin_actividad': addDays(today, 9),
+        'avance_real': 0
       },
       {
         'id_actividad': 4,
@@ -58,7 +61,8 @@ export default function ActivityExcelModal({
         'actividades_predecesoras': '2;3',
         'actividades_dependientes': '5',
         'inicio_actividad': addDays(today, 11),
-        'fin_actividad': addDays(today, 18)
+        'fin_actividad': addDays(today, 18),
+        'avance_real': 0
       },
       {
         'id_actividad': 5,
@@ -66,7 +70,8 @@ export default function ActivityExcelModal({
         'actividades_predecesoras': '4',
         'actividades_dependientes': '',
         'inicio_actividad': addDays(today, 19),
-        'fin_actividad': addDays(today, 22)
+        'fin_actividad': addDays(today, 22),
+        'avance_real': 0
       }
     ];
 
@@ -79,7 +84,8 @@ export default function ActivityExcelModal({
       { wch: 25 }, // actividades_predecesoras
       { wch: 25 }, // actividades_dependientes
       { wch: 18 }, // inicio_actividad
-      { wch: 18 }  // fin_actividad
+      { wch: 18 }, // fin_actividad
+      { wch: 14 }  // avance_real
     ];
 
     const workbook = XLSX.utils.book_new();
@@ -99,6 +105,14 @@ export default function ActivityExcelModal({
       .split(/[;,]/)
       .map(s => parseInt(s.trim(), 10))
       .filter(n => !isNaN(n) && n > 0 && n <= 100);
+  };
+
+  // Helper to parse avance_real as a 0-100 number, defaulting to 0
+  const parseAvanceReal = (val) => {
+    if (val === undefined || val === null || val === '') return 0;
+    const num = parseFloat(val);
+    if (isNaN(num)) return 0;
+    return Math.max(0, Math.min(100, num));
   };
 
   // Helper to convert Excel date values or date strings to YYYY-MM-DD
@@ -175,6 +189,7 @@ export default function ActivityExcelModal({
           
           const inicio = formatExcelDate(normalized['inicio_actividad'] || normalized['inicio'] || normalized['fecha_inicio']);
           const fin = formatExcelDate(normalized['fin_actividad'] || normalized['fin'] || normalized['fecha_fin']);
+          const avanceReal = parseAvanceReal(normalized['avance_real'] ?? normalized['avance']);
 
           return {
             id_actividad: numId,
@@ -184,6 +199,7 @@ export default function ActivityExcelModal({
             actividades_dependientes: dependientes,
             inicio_actividad: inicio,
             fin_actividad: fin >= inicio ? fin : inicio,
+            avance_real: avanceReal,
             uuid_usuario_dueno: currentUser?.id,
             uuids_usuarios_autorizados: []
           };
@@ -311,6 +327,7 @@ export default function ActivityExcelModal({
                       <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left' }}>Predecesoras</th>
                       <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left' }}>Dependientes</th>
                       <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left' }}>Fechas (Inicio - Fin)</th>
+                      <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left' }}>Avance Real</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -321,6 +338,7 @@ export default function ActivityExcelModal({
                         <td style={{ padding: '0.5rem 0.75rem', color: '#fcd34d' }}>{row.actividades_predecesoras.length > 0 ? `[${row.actividades_predecesoras.join(';')}]` : '-'}</td>
                         <td style={{ padding: '0.5rem 0.75rem', color: '#a5b4fc' }}>{row.actividades_dependientes.length > 0 ? `[${row.actividades_dependientes.join(';')}]` : '-'}</td>
                         <td style={{ padding: '0.5rem 0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{row.inicio_actividad} → {row.fin_actividad}</td>
+                        <td style={{ padding: '0.5rem 0.75rem', color: '#6ee7b7', fontWeight: 600 }}>{row.avance_real}%</td>
                       </tr>
                     ))}
                   </tbody>

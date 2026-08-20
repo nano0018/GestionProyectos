@@ -9,6 +9,7 @@ import ActivityFormModal from './activities/ActivityFormModal';
 import ActivityExcelModal from './activities/ActivityExcelModal';
 import ActivityList from './activities/ActivityList';
 import GanttChart from './activities/GanttChart';
+import CurvaS from './activities/CurvaS';
 
 import { 
   supabase, 
@@ -27,9 +28,10 @@ import {
   LayoutGrid, 
   FolderPlus, 
   Plus, 
-  ListChecks, 
-  BarChart2, 
-  Search, 
+  ListChecks,
+  BarChart2,
+  TrendingUp,
+  Search,
   ArrowLeft, 
   Shield, 
   Users,
@@ -299,7 +301,8 @@ export default function ProjectDashboard() {
               actividades_predecesoras: actData.actividades_predecesoras,
               actividades_dependientes: actData.actividades_dependientes,
               inicio_actividad: actData.inicio_actividad,
-              fin_actividad: actData.fin_actividad
+              fin_actividad: actData.fin_actividad,
+              avance_real: actData.avance_real
             })
             .eq('id', actData.id)
             .select();
@@ -320,6 +323,7 @@ export default function ProjectDashboard() {
             actividades_dependientes: actData.actividades_dependientes || [],
             inicio_actividad: actData.inicio_actividad,
             fin_actividad: actData.fin_actividad,
+            avance_real: actData.avance_real ?? 0,
             uuid_usuario_dueno: user.id,
             uuids_usuarios_autorizados: actData.uuids_usuarios_autorizados || []
           };
@@ -582,6 +586,24 @@ export default function ProjectDashboard() {
                   >
                     <BarChart2 size={15} /> Diagrama Gantt
                   </button>
+
+                  <button
+                    onClick={() => setViewMode('curvas')}
+                    style={{
+                      background: viewMode === 'curvas' ? 'var(--primary)' : 'transparent',
+                      color: viewMode === 'curvas' ? '#fff' : 'var(--text-muted)',
+                      border: 'none',
+                      padding: '0.4rem 0.8rem',
+                      borderRadius: '8px',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem'
+                    }}
+                  >
+                    <TrendingUp size={15} /> Curva S
+                  </button>
                 </div>
 
                 {canEditSelectedProject && (
@@ -648,6 +670,11 @@ export default function ProjectDashboard() {
               <GanttChart activities={activities} />
             )}
 
+            {/* Curva S View */}
+            {viewMode === 'curvas' && (
+              <CurvaS activities={activities} />
+            )}
+
             {/* Activities Table View */}
             <div className="glass-panel" style={{ padding: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
@@ -663,6 +690,7 @@ export default function ProjectDashboard() {
                   setIsActivityModalOpen(true);
                 }}
                 onDeleteActivity={handleDeleteActivity}
+                onQuickUpdateActivity={handleSaveActivity}
                 currentUser={user}
                 canEdit={canEditSelectedProject}
               />

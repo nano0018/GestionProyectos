@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, CheckCircle, ListChecks, Link, ArrowRightLeft } from 'lucide-react';
+import { X, Calendar, CheckCircle, ListChecks, Link, ArrowRightLeft, TrendingUp } from 'lucide-react';
 
-export default function ActivityFormModal({ 
+const clampAvance = (val) => {
+  const num = parseFloat(val);
+  if (Number.isNaN(num)) return NaN;
+  return Math.max(0, Math.min(100, num));
+};
+
+export default function ActivityFormModal({
   isOpen, 
   onClose, 
   onSave, 
@@ -16,6 +22,7 @@ export default function ActivityFormModal({
   const [dependientes, setDependientes] = useState([]);
   const [inicio, setInicio] = useState('');
   const [fin, setFin] = useState('');
+  const [avanceReal, setAvanceReal] = useState(0);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -28,6 +35,7 @@ export default function ActivityFormModal({
       setDependientes(activityToEdit.actividades_dependientes || []);
       setInicio(activityToEdit.inicio_actividad || todayStr);
       setFin(activityToEdit.fin_actividad || todayStr);
+      setAvanceReal(activityToEdit.avance_real ?? 0);
     } else {
       setNombre('');
       // Calculate next id_actividad (max + 1) up to 100
@@ -38,6 +46,7 @@ export default function ActivityFormModal({
       setDependientes([]);
       setInicio(todayStr);
       setFin(todayStr);
+      setAvanceReal(0);
     }
     setError('');
   }, [activityToEdit, isOpen, existingActivities]);
@@ -85,6 +94,12 @@ export default function ActivityFormModal({
       return;
     }
 
+    const numAvanceReal = clampAvance(avanceReal);
+    if (Number.isNaN(numAvanceReal)) {
+      setError('El avance real debe ser un número entre 0 y 100.');
+      return;
+    }
+
     onSave({
       id: activityToEdit ? activityToEdit.id : undefined,
       id_actividad: numId,
@@ -94,6 +109,7 @@ export default function ActivityFormModal({
       actividades_dependientes: dependientes,
       inicio_actividad: inicio,
       fin_actividad: fin,
+      avance_real: numAvanceReal,
       uuid_usuario_dueno: activityToEdit ? activityToEdit.uuid_usuario_dueno : currentUser.id,
       uuids_usuarios_autorizados: activityToEdit ? activityToEdit.uuids_usuarios_autorizados : []
     });
@@ -173,7 +189,7 @@ export default function ActivityFormModal({
 
             <div>
               <label className="input-label">Fecha Fin (sin hora)</label>
-              <input 
+              <input
                 type="date"
                 required
                 value={fin}
@@ -181,6 +197,27 @@ export default function ActivityFormModal({
                 className="input-field"
               />
             </div>
+          </div>
+
+          {/* Avance Real */}
+          <div>
+            <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <TrendingUp size={14} color="#10b981" />
+              Avance Real (%)
+            </label>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginBottom: '0.5rem' }}>
+              Porcentaje de avance real registrado manualmente. Se usa para la Curva S del proyecto.
+            </p>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              value={avanceReal}
+              onChange={(e) => setAvanceReal(e.target.value)}
+              className="input-field"
+              style={{ maxWidth: '160px' }}
+            />
           </div>
 
           {/* Selector de Actividades Predecesoras */}

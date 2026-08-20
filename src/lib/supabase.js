@@ -112,6 +112,7 @@ export const getDemoActivities = () => {
       actividades_dependientes: [2, 3],
       inicio_actividad: formatDate(today),
       fin_actividad: addDays(today, 5),
+      avance_real: 35,
       uuid_usuario_dueno: 'user-demo-1111-2222-333344445555',
       uuids_usuarios_autorizados: []
     },
@@ -124,6 +125,7 @@ export const getDemoActivities = () => {
       actividades_dependientes: [4],
       inicio_actividad: addDays(today, 6),
       fin_actividad: addDays(today, 12),
+      avance_real: 0,
       uuid_usuario_dueno: 'user-demo-1111-2222-333344445555',
       uuids_usuarios_autorizados: []
     },
@@ -136,6 +138,7 @@ export const getDemoActivities = () => {
       actividades_dependientes: [4],
       inicio_actividad: addDays(today, 6),
       fin_actividad: addDays(today, 10),
+      avance_real: 0,
       uuid_usuario_dueno: 'user-demo-1111-2222-333344445555',
       uuids_usuarios_autorizados: []
     },
@@ -148,6 +151,7 @@ export const getDemoActivities = () => {
       actividades_dependientes: [5],
       inicio_actividad: addDays(today, 13),
       fin_actividad: addDays(today, 20),
+      avance_real: 0,
       uuid_usuario_dueno: 'user-demo-1111-2222-333344445555',
       uuids_usuarios_autorizados: []
     },
@@ -160,6 +164,7 @@ export const getDemoActivities = () => {
       actividades_dependientes: [],
       inicio_actividad: addDays(today, 21),
       fin_actividad: addDays(today, 25),
+      avance_real: 0,
       uuid_usuario_dueno: 'user-demo-1111-2222-333344445555',
       uuids_usuarios_autorizados: []
     }

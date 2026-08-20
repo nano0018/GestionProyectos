@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS public.actividades (
     actividades_dependientes INT[] DEFAULT '{}',
     inicio_actividad DATE NOT NULL,
     fin_actividad DATE NOT NULL CHECK (fin_actividad >= inicio_actividad),
+    avance_real NUMERIC DEFAULT 0 CHECK (avance_real >= 0 AND avance_real <= 100),
     uuid_usuario_dueno UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     uuids_usuarios_autorizados UUID[] DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT now(),
