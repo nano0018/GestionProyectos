@@ -454,7 +454,7 @@ export default function GanttChart({ activities }) {
                 position: 'absolute',
                 bottom: '5px',
                 left: `calc(300px + (100% - 300px) * ${deadlinePercent / 100})`,
-                transform: 'translateX(-50%)',
+                transform: 'translateX(-100%)',
                 background: '#f43f5e',
                 color: '#ffffff',
                 fontSize: '0.65rem',
