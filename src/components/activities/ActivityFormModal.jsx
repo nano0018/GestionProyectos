@@ -158,8 +158,8 @@ export default function ActivityFormModal({
     )[predecesora.id_actividad] ?? 0
   );
 
-  // Lista con casillas de las demás actividades; `extra` agrega contenido a la opción marcada
-  const selectorActividades = (seleccionadas, onToggle, mensajeVacio, extra) => (
+  // Lista con casillas de las demás actividades
+  const selectorActividades = (seleccionadas, onToggle, mensajeVacio) => (
     otherActivities.length === 0 ? (
       <div className="selector-vacio">{mensajeVacio}</div>
     ) : (
@@ -172,7 +172,6 @@ export default function ActivityFormModal({
               onChange={() => onToggle(act.id_actividad)}
             />
             <span>#{act.id_actividad} - {act.nombre_actividad}</span>
-            {extra && seleccionadas.includes(act.id_actividad) && extra(act)}
           </label>
         ))}
       </div>
@@ -277,23 +276,34 @@ export default function ActivityFormModal({
           <div>
             <label className="input-label">Actividades Predecesoras</label>
             <p className="ayuda-seccion">
-              Seleccione las actividades que deben finalizar antes de iniciar esta. El número a la derecha es el traslape: días que esta actividad empieza antes del fin de la predecesora. Se calcula con las fechas; al cambiarlo se mueven las fechas de inicio y fin.
+              Seleccione las actividades que deben finalizar antes de iniciar esta. El traslape (días que esta actividad empieza antes del fin de la predecesora) se calcula con las fechas; al cambiarlo se mueven las fechas de inicio y fin.
             </p>
             {selectorActividades(
               predecesoras,
               handleTogglePredecesora,
-              'No hay otras actividades registradas aún en este proyecto.',
-              (act) => (
-                <input
-                  type="number"
-                  min={0}
-                  value={traslapeActual(act)}
-                  onChange={(e) => handleCambiarTraslape(act, e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
-                  title="Traslape (días): se calcula desde el fin de la predecesora. Al modificarlo se mueven las fechas de inicio y fin de esta actividad"
-                  className="input-traslape"
-                />
-              )
+              'No hay otras actividades registradas aún en este proyecto.'
+            )}
+
+            {/* Traslape con cada predecesora marcada (se calcula desde su fecha de fin) */}
+            {predecesoras.length > 0 && (
+              <div className="traslapes">
+                <span className="input-label">Traslape con cada predecesora (días)</span>
+                {otherActivities
+                  .filter(act => predecesoras.includes(act.id_actividad))
+                  .map(act => (
+                    <label key={act.id_actividad} className="traslape-fila">
+                      <span>#{act.id_actividad} - {act.nombre_actividad}</span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={traslapeActual(act)}
+                        onChange={(e) => handleCambiarTraslape(act, e.target.value)}
+                        title="Días que esta actividad empieza antes de que termine la predecesora"
+                        className="input-traslape"
+                      />
+                    </label>
+                  ))}
+              </div>
             )}
           </div>
 
