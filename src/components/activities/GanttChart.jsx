@@ -8,19 +8,25 @@ import { contarHabiles, moverBarra, setFestivos } from '../../lib/diasHabiles';
 const ROW_H = 50;
 const ROW_GAP = 14;
 
-export default function GanttChart({ activities, festivos = [], plazo = null, canEdit = false, onUpdateActivity }) {
+export default function GanttChart({ activities, festivos = [], plazo = null, canEdit = false, onConfirmChanges }) {
   const [scaleMode, setScaleMode] = useState('dias'); // 'dias' | 'semanas' | 'meses'
-  const [drag, setDrag] = useState(null); // { id, modo, startX, ancho, fechas } mientras se arrastra una barra
+  const [drag, setDrag] = useState(null); // { id, modo, startX, ancho, base, fechas } mientras se arrastra una barra
+  const [editando, setEditando] = useState(false); // modo edición: las barras se pueden arrastrar
+  const [borrador, setBorrador] = useState({}); // cambios sin confirmar: { id_actividad: { inicio_actividad, fin_actividad } }
   const chartRef = useRef(null);
   const rowsRef = useRef(null);
 
   if (!activities || activities.length === 0) return null;
 
   // Sort activities by start date
-  // El orden de las filas se fija con las fechas guardadas; durante un arrastre solo la barra activa usa las provisionales
+  // El orden de las filas se fija con las fechas guardadas; las barras muestran el borrador y, si se arrastran, las fechas provisionales
   const sorted = [...activities]
     .sort((a, b) => new Date(a.inicio_actividad).getTime() - new Date(b.inicio_actividad).getTime())
-    .map((a) => (drag && drag.id === a.id_actividad ? { ...a, ...drag.fechas } : a));
+    .map((a) => {
+      if (drag && drag.id === a.id_actividad) return { ...a, ...drag.fechas };
+      return borrador[a.id_actividad] ? { ...a, ...borrador[a.id_actividad] } : a;
+    });
+  const cantidadCambios = Object.keys(borrador).length;
   const fest = setFestivos(festivos);
   const limites = plazo?.definido ? { min: plazo.inicio, max: plazo.fin } : {};
 
@@ -146,29 +152,49 @@ export default function GanttChart({ activities, festivos = [], plazo = null, ca
 
   // Arrastre de barras: 'move' mueve conservando los días hábiles, 'start'/'end' cambian un extremo
   const iniciarArrastre = (e, act, modo) => {
-    if (!canEdit || !onUpdateActivity || !rowsRef.current) return;
+    if (!canEdit || !editando || !rowsRef.current) return;
     e.preventDefault();
     e.stopPropagation();
     e.currentTarget.setPointerCapture(e.pointerId);
     const ancho = rowsRef.current.getBoundingClientRect().width - 300;
-    setDrag({ id: act.id_actividad, modo, startX: e.clientX, ancho, fechas: { inicio_actividad: act.inicio_actividad, fin_actividad: act.fin_actividad } });
+    const base = { inicio_actividad: act.inicio_actividad, fin_actividad: act.fin_actividad };
+    setDrag({ id: act.id_actividad, modo, startX: e.clientX, ancho, base, fechas: base });
   };
 
   const moverArrastre = (e, act) => {
     if (!drag || drag.id !== act.id_actividad) return;
-    const original = activities.find((a) => a.id_actividad === act.id_actividad);
     const delta = Math.round(((e.clientX - drag.startX) / drag.ancho) * (totalTimeMs / 86400000));
-    setDrag({ ...drag, fechas: moverBarra(original, drag.modo, delta, fest, limites) });
+    setDrag({ ...drag, fechas: moverBarra({ ...act, ...drag.base }, drag.modo, delta, fest, limites) });
   };
 
+  // Al soltar, el resultado queda en el borrador (sin guardar); si vuelve a las fechas guardadas se descarta
   const terminarArrastre = (act) => {
     if (!drag || drag.id !== act.id_actividad) return;
     const original = activities.find((a) => a.id_actividad === act.id_actividad);
     const { fechas } = drag;
     setDrag(null);
-    if (fechas.inicio_actividad !== original.inicio_actividad || fechas.fin_actividad !== original.fin_actividad) {
-      onUpdateActivity({ ...original, ...fechas });
-    }
+    const igualAlGuardado = fechas.inicio_actividad === original.inicio_actividad && fechas.fin_actividad === original.fin_actividad;
+    setBorrador((prev) => {
+      const { [act.id_actividad]: _descartada, ...resto } = prev;
+      return igualAlGuardado ? resto : { ...resto, [act.id_actividad]: fechas };
+    });
+  };
+
+  // Sale del modo edición descartando el borrador
+  const cancelarEdicion = () => {
+    setDrag(null);
+    setBorrador({});
+    setEditando(false);
+  };
+
+  // Envía los cambios del borrador para guardarlos y sale del modo edición
+  const confirmarEdicion = () => {
+    const cambios = Object.entries(borrador).map(([id, fechas]) => ({
+      ...activities.find((a) => a.id_actividad === Number(id)),
+      ...fechas
+    }));
+    if (cambios.length > 0) onConfirmChanges(cambios);
+    cancelarEdicion();
   };
 
   // Captura el panel sin los elementos marcados con data-export-ignore (botones de exportación)
@@ -253,6 +279,26 @@ export default function GanttChart({ activities, festivos = [], plazo = null, ca
 
       {/* Botones de exportación (se excluyen de la imagen exportada) */}
       <div data-export-ignore className="fila-exportar">
+        {/* Edición del cronograma arrastrando las barras (no se guarda hasta confirmar) */}
+        {canEdit && !editando && (
+          <button onClick={() => setEditando(true)} className="boton-exportar editar">
+            ✏️ Editar Gantt
+          </button>
+        )}
+        {editando && (
+          <>
+            <button onClick={confirmarEdicion} className="boton-exportar confirmar">
+              ✔ Confirmar cambios{cantidadCambios > 0 ? ` (${cantidadCambios})` : ''}
+            </button>
+            <button onClick={cancelarEdicion} className="boton-exportar cancelar">
+              ✖ Cancelar
+            </button>
+            <span className="gantt-aviso-edicion">
+              Arrastra una barra para moverla o sus extremos para cambiar inicio / fin.
+            </span>
+          </>
+        )}
+
         <button onClick={handleExportPNG} className="boton-exportar png">
           📷 Exportar PNG
         </button>
@@ -338,16 +384,16 @@ export default function GanttChart({ activities, festivos = [], plazo = null, ca
                     {/* Barra de la actividad: arrastrable para moverla */}
                     <div
                       {...eventosArrastre('move')}
-                      className="gantt-barra"
+                      className={`gantt-barra${borrador[act.id_actividad] ? ' pendiente' : ''}`}
                       style={{
                         left: `${leftPercent}%`,
                         width: `${widthPercent}%`,
-                        cursor: canEdit ? (arrastrando ? 'grabbing' : 'grab') : 'default'
+                        cursor: editando ? (arrastrando ? 'grabbing' : 'grab') : 'default'
                       }}
                       title={`${act.nombre_actividad} (${days} días hábiles: ${act.inicio_actividad} al ${act.fin_actividad})`}
                     >
                       {/* Asas de los extremos: cambian el inicio o el fin */}
-                      {canEdit && ['start', 'end'].map((lado) => (
+                      {editando && ['start', 'end'].map((lado) => (
                         <span
                           key={lado}
                           {...eventosArrastre(lado)}

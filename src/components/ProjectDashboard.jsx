@@ -439,6 +439,46 @@ export default function ProjectDashboard() {
     }
   };
 
+  // Guarda de una vez los cambios de fechas confirmados en el Gantt (lista de actividades completas con sus nuevas fechas)
+  const handleSaveGanttChanges = async (cambios) => {
+    const previa = activities;
+    const porId = new Map(cambios.map((c) => [c.id_actividad, c]));
+    const fusionada = previa.map((a) => (porId.has(a.id_actividad) ? { ...a, ...porId.get(a.id_actividad) } : a));
+    const conTraslapes = fusionada.map((a) => (porId.has(a.id_actividad) ? { ...a, traslapes: calcularTraslapes(a, fusionada) } : a));
+
+    // Las actividades movidas deben seguir dentro del plazo definido del proyecto
+    const inicioProy = selectedProject?.inicio_proyecto;
+    const finProy = selectedProject?.fin_proyecto;
+    const fuera = conTraslapes.filter((a) => porId.has(a.id_actividad)
+      && ((inicioProy && a.inicio_actividad < inicioProy) || (finProy && a.fin_actividad > finProy)));
+    if (fuera.length > 0) {
+      alert(`Fuera del plazo del proyecto (${inicioProy} a ${finProy}): ${fuera.map((a) => `#${a.id_actividad}`).join(', ')}.`);
+      return;
+    }
+
+    // Reprograma dependientes una sola vez sin extender el plazo
+    const finProyecto = finProy
+      || conTraslapes.reduce((max, a) => (a.fin_actividad > max ? a.fin_actividad : max), '');
+    const { actividades: finales, movidas, excede } = reprogramarDependientes(conTraslapes, {
+      finProyecto,
+      ignorar: violaciones(previa)
+    });
+    if (excede.length > 0) {
+      alert(`No se pueden guardar los cambios: reprogramar ${excede.map((m) => `#${m}`).join(', ')} extendería el plazo del proyecto (${finProyecto}).`);
+      return;
+    }
+    if (movidas.length > 0 && !window.confirm(
+      `Se reprogramarán también las fechas de las actividades: ${movidas.map((m) => `#${m}`).join(', ')}.\n¿Continuar?`
+    )) return;
+
+    await persistirCambios(finales, previa);
+    if (isSupabaseConfigured && supabase) {
+      fetchActivities(selectedProject.uuid_proyecto);
+    } else {
+      setActivities(finales);
+    }
+  };
+
   // Elimina una actividad y la quita de las relaciones de las demás
   const handleDeleteActivity = async (idActividad) => {
     if (!window.confirm(`¿Eliminar la Actividad #${idActividad}?`)) return;
@@ -709,7 +749,7 @@ export default function ProjectDashboard() {
                 festivos={festivosProyecto}
                 plazo={plazoProyecto}
                 canEdit={canEditSelectedProject}
-                onUpdateActivity={handleSaveActivity}
+                onConfirmChanges={handleSaveGanttChanges}
               />
             )}
 
