@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS public.proyectos (
     nombre_proyecto TEXT NOT NULL,
     descripcion_proyecto TEXT,
     componentes INT DEFAULT 1 CHECK (componentes >= 1 AND componentes <= 10),
+    inicio_proyecto DATE,
+    fin_proyecto DATE,
+    festivos JSONB DEFAULT '[]'::jsonb,
     uuid_usuario_dueno UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     uuids_usuarios_autorizados UUID[] DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT now()
@@ -30,11 +33,20 @@ CREATE TABLE IF NOT EXISTS public.actividades (
     inicio_actividad DATE NOT NULL,
     fin_actividad DATE NOT NULL CHECK (fin_actividad >= inicio_actividad),
     avance_real NUMERIC DEFAULT 0 CHECK (avance_real >= 0 AND avance_real <= 100),
+    historial_avance JSONB DEFAULT '[]'::jsonb,
+    traslapes JSONB DEFAULT '{}'::jsonb,
     uuid_usuario_dueno UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     uuids_usuarios_autorizados UUID[] DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT now(),
     CONSTRAINT unique_proyecto_id_actividad UNIQUE (uuid_proyecto, id_actividad)
 );
+
+-- Para tablas ya existentes: añade la columna de historial de avance real
+ALTER TABLE public.actividades ADD COLUMN IF NOT EXISTS historial_avance JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.actividades ADD COLUMN IF NOT EXISTS traslapes JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.proyectos ADD COLUMN IF NOT EXISTS inicio_proyecto DATE;
+ALTER TABLE public.proyectos ADD COLUMN IF NOT EXISTS fin_proyecto DATE;
+ALTER TABLE public.proyectos ADD COLUMN IF NOT EXISTS festivos JSONB DEFAULT '[]'::jsonb;
 
 -- TRIGGER PARA ASIGNAR AUTOMÁTICAMENTE id_actividad (1 a 100 por proyecto)
 CREATE OR REPLACE FUNCTION set_next_id_actividad()
@@ -131,32 +143,33 @@ export default function SqlSetupModal({ isOpen, onClose, isConfigured }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '750px' }}>
         
-        {/* Modal Header */}
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Encabezado */}
+        <div className="modal-encabezado">
+          <div className="grupo-titulo">
+            <div className="sql-icono">
               <Database size={20} color="#a5b4fc" />
             </div>
             <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>Script SQL para Supabase</h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+              <h3 className="modal-titulo">Script SQL para Supabase</h3>
+              <p className="texto-secundario">
                 {isConfigured ? 'Conexión a Supabase activa' : 'Configura tu BD en Supabase con este código'}
               </p>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <button onClick={onClose} className="modal-cerrar">
             <X size={20} />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div style={{ padding: '1.5rem' }}>
+        {/* Cuerpo */}
+        <div className="modal-cuerpo-simple">
+          {/* Pasos para activar Supabase (solo si aún no está configurado) */}
           {!isConfigured && (
-            <div style={{ background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+            <div className="sql-instrucciones">
               <ShieldAlert size={20} color="#f59e0b" style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div style={{ fontSize: '0.85rem', color: '#fcd34d' }}>
+              <div className="sql-instrucciones-texto">
                 <strong>Instrucciones para activar Supabase real:</strong>
-                <ol style={{ marginLeft: '1.2rem', marginTop: '0.4rem', lineHeight: 1.5 }}>
+                <ol>
                   <li>Crea un proyecto en Supabase (supabase.com)</li>
                   <li>Ve a <strong>SQL Editor</strong> en Supabase, pega el script de abajo y haz clic en <strong>Run</strong></li>
                   <li>Agrega tus claves en `.env`: <code>PUBLIC_SUPABASE_URL</code> y <code>PUBLIC_SUPABASE_ANON_KEY</code></li>
@@ -165,39 +178,23 @@ export default function SqlSetupModal({ isOpen, onClose, isConfigured }) {
             </div>
           )}
 
-          <div style={{ position: 'relative' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <span className="input-label" style={{ margin: 0 }}>Código SQL Completo (Tablas, Triggers y RLS)</span>
-              <button 
-                onClick={handleCopy}
-                className="btn-secondary"
-                style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}
-              >
+          {/* Script SQL con botón para copiarlo */}
+          <div>
+            <div className="sql-cabecera-codigo">
+              <span className="input-label">Código SQL Completo (Tablas, Triggers y RLS)</span>
+              <button onClick={handleCopy} className="btn-secondary sql-boton-copiar">
                 {copied ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
                 <span>{copied ? '¡Copiado al Portapapeles!' : 'Copiar SQL'}</span>
               </button>
             </div>
 
-            <pre style={{ 
-              background: '#090d16', 
-              border: '1px solid var(--border-glass)', 
-              borderRadius: '10px', 
-              padding: '1rem', 
-              fontSize: '0.78rem', 
-              color: '#a5b4fc', 
-              maxHeight: '320px', 
-              overflowY: 'auto',
-              fontFamily: 'monospace',
-              lineHeight: 1.4
-            }}>
-              {SQL_SCRIPT}
-            </pre>
+            <pre className="sql-codigo">{SQL_SCRIPT}</pre>
           </div>
         </div>
 
-        {/* Modal Footer */}
-        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-glass)', display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={onClose} className="btn-primary" style={{ fontSize: '0.85rem' }}>
+        {/* Pie */}
+        <div className="modal-pie">
+          <button onClick={onClose} className="btn-primary">
             Entendido
           </button>
         </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { sincronizarRelaciones, tieneCiclo, calcularTraslapes, fechasParaTraslape } from '../../lib/dependencias';
 import { X, Calendar, CheckCircle, ListChecks, Link, ArrowRightLeft, TrendingUp } from 'lucide-react';
 
 const clampAvance = (val) => {
@@ -100,6 +101,24 @@ export default function ActivityFormModal({
       return;
     }
 
+    const candidata = {
+      ...activityToEdit,
+      id_actividad: numId,
+      actividades_predecesoras: predecesoras,
+      actividades_dependientes: dependientes
+    };
+    const hipotetica = activityToEdit
+      ? existingActivities.map((a) => (a.id === activityToEdit.id ? candidata : a))
+      : [...existingActivities, candidata];
+    if (hipotetica.filter((a) => a.id_actividad === numId).length > 1) {
+      setError(`Ya existe otra actividad con el ID #${numId}.`);
+      return;
+    }
+    if (tieneCiclo(sincronizarRelaciones(hipotetica, candidata, activityToEdit?.id_actividad ?? numId))) {
+      setError('Las predecesoras/dependientes seleccionadas crean un ciclo entre actividades.');
+      return;
+    }
+
     onSave({
       id: activityToEdit ? activityToEdit.id : undefined,
       id_actividad: numId,
@@ -110,6 +129,7 @@ export default function ActivityFormModal({
       inicio_actividad: inicio,
       fin_actividad: fin,
       avance_real: numAvanceReal,
+      historial_avance: activityToEdit?.historial_avance || [],
       uuid_usuario_dueno: activityToEdit ? activityToEdit.uuid_usuario_dueno : currentUser.id,
       uuids_usuarios_autorizados: activityToEdit ? activityToEdit.uuids_usuarios_autorizados : []
     });
@@ -117,41 +137,75 @@ export default function ActivityFormModal({
     onClose();
   };
 
-  // Filter out current activity from options to prevent self-dependency
+  // Actividades que se pueden elegir como relacionadas (todas menos la que se edita)
   const otherActivities = existingActivities.filter(
     act => !activityToEdit || act.id_actividad !== activityToEdit.id_actividad
+  );
+
+  // Cambia el traslape con una predecesora: mueve inicio y fin conservando la duración
+  const handleCambiarTraslape = (predecesora, valor) => {
+    const dias = Math.max(0, parseInt(valor, 10) || 0);
+    const nuevas = fechasParaTraslape({ inicio_actividad: inicio, fin_actividad: fin }, predecesora, dias);
+    setInicio(nuevas.inicio);
+    setFin(nuevas.fin);
+  };
+
+  // Traslape actual (días) con una predecesora, calculado desde las fechas del formulario
+  const traslapeActual = (predecesora) => (
+    calcularTraslapes(
+      { inicio_actividad: inicio, actividades_predecesoras: [predecesora.id_actividad] },
+      existingActivities
+    )[predecesora.id_actividad] ?? 0
+  );
+
+  // Lista con casillas de las demás actividades; `extra` agrega contenido a la opción marcada
+  const selectorActividades = (seleccionadas, onToggle, mensajeVacio, extra) => (
+    otherActivities.length === 0 ? (
+      <div className="selector-vacio">{mensajeVacio}</div>
+    ) : (
+      <div className="selector-actividades">
+        {otherActivities.map(act => (
+          <label key={act.id_actividad} className="selector-opcion">
+            <input
+              type="checkbox"
+              checked={seleccionadas.includes(act.id_actividad)}
+              onChange={() => onToggle(act.id_actividad)}
+            />
+            <span>#{act.id_actividad} - {act.nombre_actividad}</span>
+            {extra && seleccionadas.includes(act.id_actividad) && extra(act)}
+          </label>
+        ))}
+      </div>
+    )
   );
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '620px' }}>
-        
-        {/* Header */}
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+
+        {/* Encabezado */}
+        <div className="modal-encabezado">
+          <div className="grupo-titulo">
             <ListChecks size={20} color="#6366f1" />
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>
+            <h3 className="modal-titulo">
               {activityToEdit ? `Editar Actividad #${activityToEdit.id_actividad}` : `Nueva Actividad (#${idActividad})`}
             </h3>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <button onClick={onClose} className="modal-cerrar">
             <X size={18} />
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-          
-          {error && (
-            <div style={{ background: 'rgba(244, 63, 94, 0.15)', color: '#fda4af', border: '1px solid rgba(244, 63, 94, 0.3)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.82rem' }}>
-              {error}
-            </div>
-          )}
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="modal-cuerpo">
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: '1rem' }}>
+          {error && <div className="alerta-error">{error}</div>}
+
+          {/* Nombre e ID */}
+          <div className="rejilla-nombre-id">
             <div>
               <label className="input-label">Nombre de la Actividad *</label>
-              <input 
+              <input
                 type="text"
                 required
                 value={nombre}
@@ -163,7 +217,7 @@ export default function ActivityFormModal({
 
             <div>
               <label className="input-label">ID Actividad (1-100)</label>
-              <input 
+              <input
                 type="number"
                 min={1}
                 max={100}
@@ -174,11 +228,11 @@ export default function ActivityFormModal({
             </div>
           </div>
 
-          {/* Fechas Simples YYYY-MM-DD */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          {/* Fechas de inicio y fin (YYYY-MM-DD) */}
+          <div className="rejilla-2col">
             <div>
               <label className="input-label">Fecha Inicio (sin hora)</label>
-              <input 
+              <input
                 type="date"
                 required
                 value={inicio}
@@ -199,13 +253,13 @@ export default function ActivityFormModal({
             </div>
           </div>
 
-          {/* Avance Real */}
+          {/* Avance real */}
           <div>
-            <label className="input-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <label className="input-label etiqueta-con-icono">
               <TrendingUp size={14} color="#10b981" />
               Avance Real (%)
             </label>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginBottom: '0.5rem' }}>
+            <p className="ayuda-seccion">
               Porcentaje de avance real registrado manualmente. Se usa para la Curva S del proyecto.
             </p>
             <input
@@ -215,67 +269,46 @@ export default function ActivityFormModal({
               step={1}
               value={avanceReal}
               onChange={(e) => setAvanceReal(e.target.value)}
-              className="input-field"
-              style={{ maxWidth: '160px' }}
+              className="input-field campo-corto"
             />
           </div>
 
-          {/* Selector de Actividades Predecesoras */}
+          {/* Predecesoras: cada una marcada muestra su traslape */}
           <div>
             <label className="input-label">Actividades Predecesoras</label>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginBottom: '0.5rem' }}>
-              Seleccione las actividades que deben finalizar antes de iniciar esta.
+            <p className="ayuda-seccion">
+              Seleccione las actividades que deben finalizar antes de iniciar esta. El número a la derecha es el traslape: días que esta actividad empieza antes del fin de la predecesora. Se calcula con las fechas; al cambiarlo se mueven las fechas de inicio y fin.
             </p>
-
-            {otherActivities.length === 0 ? (
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: '8px', border: '1px border-dashed var(--border-glass)' }}>
-                No hay otras actividades registradas aún en este proyecto.
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem', maxHeight: '120px', overflowY: 'auto', padding: '0.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
-                {otherActivities.map(act => (
-                  <label key={act.id_actividad} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', cursor: 'pointer', padding: '0.25rem' }}>
-                    <input 
-                      type="checkbox"
-                      checked={predecesoras.includes(act.id_actividad)}
-                      onChange={() => handleTogglePredecesora(act.id_actividad)}
-                    />
-                    <span>#{act.id_actividad} - {act.nombre_actividad}</span>
-                  </label>
-                ))}
-              </div>
+            {selectorActividades(
+              predecesoras,
+              handleTogglePredecesora,
+              'No hay otras actividades registradas aún en este proyecto.',
+              (act) => (
+                <input
+                  type="number"
+                  min={0}
+                  value={traslapeActual(act)}
+                  onChange={(e) => handleCambiarTraslape(act, e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  title="Traslape (días): se calcula desde el fin de la predecesora. Al modificarlo se mueven las fechas de inicio y fin de esta actividad"
+                  className="input-traslape"
+                />
+              )
             )}
           </div>
 
-          {/* Selector de Actividades Dependientes */}
+          {/* Dependientes */}
           <div>
             <label className="input-label">Actividades Dependientes</label>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginBottom: '0.5rem' }}>
-              Seleccione las actividades que dependen del término de esta.
+            <p className="ayuda-seccion">
+              Seleccione las actividades que dependen del término de esta. La relación se sincroniza en ambas actividades y,
+              si es necesario, se reprograman las fechas de las dependientes.
             </p>
-
-            {otherActivities.length === 0 ? (
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: '8px', border: '1px border-dashed var(--border-glass)' }}>
-                No hay otras actividades para vincular.
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem', maxHeight: '120px', overflowY: 'auto', padding: '0.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid var(--border-glass)' }}>
-                {otherActivities.map(act => (
-                  <label key={act.id_actividad} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', cursor: 'pointer', padding: '0.25rem' }}>
-                    <input 
-                      type="checkbox"
-                      checked={dependientes.includes(act.id_actividad)}
-                      onChange={() => handleToggleDependiente(act.id_actividad)}
-                    />
-                    <span>#{act.id_actividad} - {act.nombre_actividad}</span>
-                  </label>
-                ))}
-              </div>
-            )}
+            {selectorActividades(dependientes, handleToggleDependiente, 'No hay otras actividades para vincular.')}
           </div>
 
-          {/* Actions */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+          {/* Acciones */}
+          <div className="modal-acciones separada">
             <button type="button" onClick={onClose} className="btn-secondary">
               Cancelar
             </button>

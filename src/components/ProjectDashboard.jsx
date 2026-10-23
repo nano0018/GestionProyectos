@@ -10,6 +10,10 @@ import ActivityExcelModal from './activities/ActivityExcelModal';
 import ActivityList from './activities/ActivityList';
 import GanttChart from './activities/GanttChart';
 import CurvaS from './activities/CurvaS';
+import PlazoProyectoModal from './projects/PlazoProyectoModal';
+import FestivosModal from './projects/FestivosModal';
+import { contarHabiles, diasCalendario, setFestivos } from '../lib/diasHabiles';
+import { sincronizarRelaciones, quitarActividad, reprogramarDependientes, violaciones, calcularTraslapes } from '../lib/dependencias';
 
 import { 
   supabase, 
@@ -48,7 +52,7 @@ export default function ProjectDashboard() {
 
   // UI state
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState('list'); // 'list' | 'gantt'
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'gantt' | 'curvas'
   
   // Modals state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -56,6 +60,8 @@ export default function ProjectDashboard() {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [projectToEdit, setProjectToEdit] = useState(null);
   const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
+  const [isPlazoModalOpen, setIsPlazoModalOpen] = useState(false);
+  const [isFestivosModalOpen, setIsFestivosModalOpen] = useState(false);
   const [projectForAccess, setProjectForAccess] = useState(null);
   const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
   const [activityToEdit, setActivityToEdit] = useState(null);
@@ -166,6 +172,7 @@ export default function ProjectDashboard() {
   }, [selectedProject]);
 
   // --- Handlers: Projects ---
+  // Crea o actualiza un proyecto (Supabase o modo demo)
   const handleSaveProject = async (projectData) => {
     if (!user) {
       alert('Debes iniciar sesión para crear o editar un proyecto.');
@@ -239,6 +246,7 @@ export default function ProjectDashboard() {
     }
   };
 
+  // Elimina un proyecto y, si estaba abierto, vuelve a la lista
   const handleDeleteProject = async (projectId) => {
     if (!window.confirm('¿Está seguro de eliminar este proyecto y sus actividades?')) return;
 
@@ -261,6 +269,7 @@ export default function ProjectDashboard() {
     }
   };
 
+  // Guarda la lista de usuarios autorizados de un proyecto
   const handleSaveAccess = async (projectId, newAuthorizedUuids) => {
     if (isSupabaseConfigured && supabase) {
       const { error } = await supabase
@@ -288,83 +297,154 @@ export default function ProjectDashboard() {
   };
 
   // --- Handlers: Activities ---
+
+  // Campos editables de una actividad que se envían a Supabase en cada update.
+  const camposActividad = (a) => ({
+    id_actividad: a.id_actividad,
+    nombre_actividad: a.nombre_actividad,
+    actividades_predecesoras: a.actividades_predecesoras || [],
+    actividades_dependientes: a.actividades_dependientes || [],
+    inicio_actividad: a.inicio_actividad,
+    fin_actividad: a.fin_actividad,
+    avance_real: a.avance_real ?? 0,
+    historial_avance: a.historial_avance ?? [],
+    traslapes: a.traslapes ?? {}
+  });
+
+  // Persiste las filas que cambiaron respecto a `previa` (relaciones sincronizadas, fechas reprogramadas).
+  const persistirCambios = async (finales, previa) => {
+    const cambiadas = finales.filter((a) => {
+      const antes = previa.find((p) => p.id === a.id);
+      return a.id && antes && JSON.stringify(camposActividad(antes)) !== JSON.stringify(camposActividad(a));
+    });
+    if (cambiadas.length === 0) return;
+
+    if (isSupabaseConfigured && supabase) {
+      const resultados = await Promise.all(
+        cambiadas.map((a) => supabase.from('actividades').update(camposActividad(a)).eq('id', a.id))
+      );
+      const fallo = resultados.find((r) => r.error);
+      if (fallo) {
+        console.error('Error al actualizar actividades relacionadas:', fallo.error);
+        alert(`Error al actualizar actividades relacionadas: ${fallo.error.message}`);
+      }
+    } else {
+      const porRow = new Map(cambiadas.map((a) => [a.id, a]));
+      saveDemoActivities(getDemoActivities().map((a) => (porRow.has(a.id) ? { ...a, ...porRow.get(a.id) } : a)));
+    }
+  };
+
+  // Actualiza campos sueltos del proyecto abierto (plazo, festivos)
+  const handleUpdateProject = async (patch) => {
+    if (!selectedProject) return;
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.from('proyectos').update(patch).eq('uuid_proyecto', selectedProject.uuid_proyecto);
+      if (error) {
+        console.error('Error al actualizar proyecto:', error);
+        alert(`Error al actualizar el proyecto: ${error.message}`);
+        return;
+      }
+    } else {
+      saveDemoProjects(getDemoProjects().map((p) => (p.uuid_proyecto === selectedProject.uuid_proyecto ? { ...p, ...patch } : p)));
+    }
+    setSelectedProject((prev) => (prev ? { ...prev, ...patch } : prev));
+    setProjects((prev) => prev.map((p) => (p.uuid_proyecto === selectedProject.uuid_proyecto ? { ...p, ...patch } : p)));
+  };
+
+  // Crea o actualiza una actividad: sincroniza relaciones, reprograma dependientes sin pasar del plazo y persiste los cambios
   const handleSaveActivity = async (actData) => {
+    const previa = activities;
+    const esNueva = !actData.id;
+    const idAnterior = esNueva ? actData.id_actividad : previa.find((a) => a.id === actData.id)?.id_actividad;
+    const fusionada = esNueva
+      ? [...previa, { ...actData }]
+      : previa.map((a) => (a.id === actData.id ? { ...a, ...actData } : a));
+
+    // El traslape de la actividad editada se deduce de sus fechas y del fin de cada predecesora
+    const editadaBase = fusionada.find((a) => a.id_actividad === actData.id_actividad);
+    const editada = { ...editadaBase, traslapes: calcularTraslapes(editadaBase, fusionada) };
+    fusionada[fusionada.indexOf(editadaBase)] = editada;
+    // El plazo del proyecto no se extiende por reprogramación; los incumplimientos previos (p.ej. de un Excel) se respetan.
+    const inicioProy = selectedProject?.inicio_proyecto;
+    const finProy = selectedProject?.fin_proyecto;
+    if ((inicioProy && editada.inicio_actividad < inicioProy) || (finProy && editada.fin_actividad > finProy)) {
+      alert(`La actividad debe estar dentro del plazo del proyecto (${inicioProy} a ${finProy}).`);
+      return;
+    }
+    const finProyecto = selectedProject?.fin_proyecto
+      || [...previa, editada].reduce((max, a) => (a.fin_actividad > max ? a.fin_actividad : max), '');
+    const { actividades: finales, movidas, excede } = reprogramarDependientes(
+      sincronizarRelaciones(fusionada, editada, idAnterior),
+      { finProyecto, ignorar: violaciones(previa) }
+    );
+
+    if (excede.length > 0) {
+      alert(`No se puede guardar: reprogramar ${excede.map((m) => `#${m}`).join(', ')} extendería el plazo del proyecto (${finProyecto}). Ajuste las fechas o el traslape permitido.`);
+      return;
+    }
+
+    if (movidas.length > 0 && !window.confirm(
+      `Se reprogramarán las fechas de las actividades: ${movidas.map((m) => `#${m}`).join(', ')}.\n¿Continuar?`
+    )) return;
+
+    const final = finales.find((a) => a.id_actividad === actData.id_actividad);
+
     if (isSupabaseConfigured && supabase) {
       try {
-        if (actData.id) {
-          // Update by row id
-          const { data, error } = await supabase
+        if (!esNueva) {
+          const { error } = await supabase
             .from('actividades')
-            .update({
-              id_actividad: actData.id_actividad,
-              nombre_actividad: actData.nombre_actividad,
-              actividades_predecesoras: actData.actividades_predecesoras,
-              actividades_dependientes: actData.actividades_dependientes,
-              inicio_actividad: actData.inicio_actividad,
-              fin_actividad: actData.fin_actividad,
-              avance_real: actData.avance_real
-            })
-            .eq('id', actData.id)
-            .select();
+            .update(camposActividad(final))
+            .eq('id', actData.id);
 
           if (error) {
             console.error('Error al actualizar actividad:', error);
             alert(`Error al actualizar actividad: ${error.message}`);
-          } else {
-            fetchActivities(selectedProject.uuid_proyecto);
+            return;
           }
         } else {
-          // Insert
-          const payload = {
-            uuid_proyecto: actData.uuid_proyecto,
-            nombre_actividad: actData.nombre_actividad,
-            id_actividad: actData.id_actividad,
-            actividades_predecesoras: actData.actividades_predecesoras || [],
-            actividades_dependientes: actData.actividades_dependientes || [],
-            inicio_actividad: actData.inicio_actividad,
-            fin_actividad: actData.fin_actividad,
-            avance_real: actData.avance_real ?? 0,
-            uuid_usuario_dueno: user.id,
-            uuids_usuarios_autorizados: actData.uuids_usuarios_autorizados || []
-          };
-
-          const { data, error } = await supabase
+          const { error } = await supabase
             .from('actividades')
-            .insert([payload])
-            .select();
+            .insert([{
+              ...camposActividad(final),
+              uuid_proyecto: actData.uuid_proyecto,
+              uuid_usuario_dueno: user.id,
+              uuids_usuarios_autorizados: actData.uuids_usuarios_autorizados || []
+            }]);
 
           if (error) {
             console.error('Error al insertar actividad en Supabase:', error);
             alert(`Error al insertar actividad en Supabase:\nCódigo: ${error.code}\nMensaje: ${error.message}`);
-          } else {
-            fetchActivities(selectedProject.uuid_proyecto);
+            return;
           }
         }
+        await persistirCambios(finales.filter((a) => a.id_actividad !== actData.id_actividad), previa);
+        fetchActivities(selectedProject.uuid_proyecto);
       } catch (err) {
         console.error('Excepción al guardar actividad:', err);
         alert(`Error inesperado al guardar actividad: ${err.message}`);
       }
     } else {
       // Demo Mode
-      const allDemoActs = getDemoActivities();
-      if (actData.id) {
-        const updated = allDemoActs.map(a => a.id === actData.id ? { ...a, ...actData } : a);
-        saveDemoActivities(updated);
-        setActivities(updated.filter(a => a.uuid_proyecto === selectedProject.uuid_proyecto));
-      } else {
-        const newAct = {
-          ...actData,
-          id: 'act-' + Math.random().toString(36).substring(2, 7)
-        };
-        const updated = [...allDemoActs, newAct];
-        saveDemoActivities(updated);
-        setActivities(updated.filter(a => a.uuid_proyecto === selectedProject.uuid_proyecto));
-      }
+      const rowId = esNueva ? 'act-' + Math.random().toString(36).substring(2, 7) : actData.id;
+      const guardada = { ...final, id: rowId };
+      const vecinas = finales.filter((a) => a.id_actividad !== actData.id_actividad);
+      const porRow = new Map([...vecinas, guardada].map((a) => [a.id, a]));
+      const todas = getDemoActivities();
+      const updated = esNueva
+        ? [...todas.map((a) => (porRow.has(a.id) ? { ...a, ...porRow.get(a.id) } : a)), guardada]
+        : todas.map((a) => (porRow.has(a.id) ? { ...a, ...porRow.get(a.id) } : a));
+      saveDemoActivities(updated);
+      setActivities(updated.filter((a) => a.uuid_proyecto === selectedProject.uuid_proyecto));
     }
   };
 
+  // Elimina una actividad y la quita de las relaciones de las demás
   const handleDeleteActivity = async (idActividad) => {
     if (!window.confirm(`¿Eliminar la Actividad #${idActividad}?`)) return;
+
+    const previa = activities;
+    const restantes = quitarActividad(previa, idActividad);
 
     if (isSupabaseConfigured && supabase) {
       await supabase
@@ -373,17 +453,19 @@ export default function ProjectDashboard() {
         .eq('uuid_proyecto', selectedProject.uuid_proyecto)
         .eq('id_actividad', idActividad);
 
+      await persistirCambios(restantes, previa);
       fetchActivities(selectedProject.uuid_proyecto);
     } else {
-      const allDemoActs = getDemoActivities();
-      const updated = allDemoActs.filter(
-        a => !(a.uuid_proyecto === selectedProject.uuid_proyecto && a.id_actividad === idActividad)
-      );
+      const porRow = new Map(restantes.map((a) => [a.id, a]));
+      const updated = getDemoActivities()
+        .filter((a) => !(a.uuid_proyecto === selectedProject.uuid_proyecto && a.id_actividad === idActividad))
+        .map((a) => (porRow.has(a.id) ? { ...a, ...porRow.get(a.id) } : a));
       saveDemoActivities(updated);
-      setActivities(updated.filter(a => a.uuid_proyecto === selectedProject.uuid_proyecto));
+      setActivities(updated.filter((a) => a.uuid_proyecto === selectedProject.uuid_proyecto));
     }
   };
 
+  // Inserta de una vez las actividades leídas de un Excel (respeta sus fechas tal cual)
   const handleBatchImportActivities = async (newActivitiesList) => {
     if (!selectedProject) return;
 
@@ -419,6 +501,7 @@ export default function ProjectDashboard() {
     }
   };
 
+  // Cierra la sesión y limpia el estado de la pantalla
   const handleLogout = async () => {
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
@@ -430,45 +513,49 @@ export default function ProjectDashboard() {
     setSelectedProject(null);
   };
 
-  // Filtered projects
+  // Proyectos que coinciden con el texto del buscador
   const filteredProjects = projects.filter(p => 
     p.nombre_proyecto.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (p.descripcion_proyecto && p.descripcion_proyecto.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  // Permisos sobre el proyecto abierto: el dueño y los autorizados pueden editar
   const isCurrentProjectOwner = selectedProject && user && selectedProject.uuid_usuario_dueno === user.id;
   const isCurrentProjectAuthorized = selectedProject && user && (selectedProject.uuids_usuarios_autorizados || []).includes(user.id);
   const canEditSelectedProject = isCurrentProjectOwner || isCurrentProjectAuthorized;
 
-  // Calculate project duration from activities
+  // Plazo del proyecto: fechas guardadas, o deducidas de las actividades si no se han definido
+  const festivosProyecto = selectedProject?.festivos || [];
+  const plazoProyecto = (() => {
+    const inicioDef = selectedProject?.inicio_proyecto || null;
+    const finDef = selectedProject?.fin_proyecto || null;
+    const inicios = activities.map((a) => a.inicio_actividad).filter(Boolean).sort();
+    const fines = activities.map((a) => a.fin_actividad).filter(Boolean).sort();
+    return {
+      inicio: inicioDef || inicios[0] || null,
+      fin: finDef || fines[fines.length - 1] || null,
+      definido: !!(inicioDef && finDef)
+    };
+  })();
+
+  // Duración del proyecto en días calendario y hábiles (con los festivos del proyecto)
   const getProjectDuration = () => {
-    if (!activities || activities.length === 0) return null;
-
-    const starts = activities.map(a => new Date(a.inicio_actividad).getTime()).filter(t => !isNaN(t));
-    const ends = activities.map(a => new Date(a.fin_actividad).getTime()).filter(t => !isNaN(t));
-    if (starts.length === 0 || ends.length === 0) return null;
-
-    const minStart = Math.min(...starts);
-    const maxEnd = Math.max(...ends);
-
-    const totalDays = Math.round((maxEnd - minStart) / (1000 * 60 * 60 * 24)) + 1;
-
-    // Business days: exclude Saturdays (6) and Sundays (0)
-    let businessDays = 0;
-    const current = new Date(minStart);
-    const end = new Date(maxEnd);
-    while (current <= end) {
-      const day = current.getDay();
-      if (day !== 0 && day !== 6) {
-        businessDays++;
-      }
-      current.setDate(current.getDate() + 1);
-    }
-
-    return { totalDays, businessDays };
+    const { inicio, fin } = plazoProyecto;
+    if (!inicio || !fin || fin < inicio) return null;
+    return {
+      totalDays: diasCalendario(inicio, fin),
+      businessDays: contarHabiles(inicio, fin, setFestivos(festivosProyecto))
+    };
   };
 
   const projectDuration = getProjectDuration();
+
+  // Botón del selector de vista (Tabla / Gantt / Curva S); resalta el modo activo
+  const botonVista = (modo, icono, texto) => (
+    <button onClick={() => setViewMode(modo)} className={viewMode === modo ? 'activo' : undefined}>
+      {icono} {texto}
+    </button>
+  );
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -487,41 +574,40 @@ export default function ProjectDashboard() {
       />
 
       {/* Main Content Area */}
-      <main style={{ flex: 1, maxWidth: '1280px', width: '100%', margin: '0 auto', padding: '2rem 1.5rem' }}>
-        
-        {/* Banner if Supabase is not configured yet */}
+      <main className="pagina-principal">
+
+        {/* Aviso: Supabase no está configurado, se usan datos locales de prueba */}
         {!isSupabaseConfigured && user && (
-          <div className="glass-panel" style={{ padding: '1rem 1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderLeft: '4px solid #f59e0b' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+          <div className="glass-panel banner-demo">
+            <div className="banner-demo-contenido">
               <Info size={22} color="#f59e0b" />
               <div>
-                <strong style={{ color: 'var(--accent-amber)', fontSize: '0.9rem' }}>Modo Demostración / Preview Activo</strong>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                <strong className="banner-demo-titulo">Modo Demostración / Preview Activo</strong>
+                <p className="texto-secundario">
                   Estás interactuando con datos de prueba locales. Para conectar con tu base de datos de Supabase y probar autenticación real, abre el instalador SQL.
                 </p>
               </div>
             </div>
-            <button onClick={() => setIsSqlModalOpen(true)} className="btn-secondary" style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', whiteSpace: 'nowrap' }}>
+            <button onClick={() => setIsSqlModalOpen(true)} className="btn-secondary banner-demo-boton">
               Ver Script SQL
             </button>
           </div>
         )}
 
-        {/* BREADCRUMB / NAVIGATION BAR */}
+        {/* ENCABEZADO: detalle del proyecto abierto, o título y buscador de la lista */}
         {selectedProject ? (
-          <div style={{ marginBottom: '2rem' }}>
-            <button 
-              onClick={() => setSelectedProject(null)}
-              className="btn-secondary"
-              style={{ marginBottom: '1.25rem', fontSize: '0.85rem' }}
-            >
+          <div className="proyecto-detalle">
+            {/* Volver a la lista de proyectos */}
+            <button onClick={() => setSelectedProject(null)} className="btn-secondary proyecto-volver">
               <ArrowLeft size={16} />
               <span>Volver a la lista de proyectos</span>
             </button>
 
-            <div className="glass-panel" style={{ padding: '1.75rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+            {/* Panel de cabecera del proyecto */}
+            <div className="glass-panel proyecto-cabecera">
+              {/* Datos del proyecto */}
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.3rem' }}>
+                <div className="proyecto-insignias">
                   <span className="badge badge-indigo">
                     {selectedProject.componentes} Componente(s)
                   </span>
@@ -533,157 +619,114 @@ export default function ProjectDashboard() {
                   )}
                 </div>
 
-                <h2 style={{ fontSize: '1.75rem', fontWeight: 800, margin: 0 }} className="gradient-text">
-                  {selectedProject.nombre_proyecto}
-                </h2>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                <h2 className="proyecto-titulo gradient-text">{selectedProject.nombre_proyecto}</h2>
+                <p className="proyecto-descripcion">
                   {selectedProject.descripcion_proyecto || 'Sin descripción.'}
                 </p>
+
+                {/* Duración del proyecto y accesos a su plazo y festivos */}
                 {projectDuration && (
-                  <p style={{ fontSize: '0.85rem', color: 'var(--accent-emerald)', marginTop: '0.35rem', fontWeight: 600 }}>
-                    Duración proyecto: {projectDuration.totalDays} días [{projectDuration.businessDays} días hábiles]
+                  <p className="proyecto-duracion">
+                    Duración proyecto: {projectDuration.businessDays} días hábiles [{projectDuration.totalDays} días calendario]
+                    {canEditSelectedProject && (
+                      <>
+                        <button onClick={() => setIsPlazoModalOpen(true)} className="btn-secondary">
+                          Editar plazo
+                        </button>
+                        <button onClick={() => setIsFestivosModalOpen(true)} className="btn-secondary">
+                          Festivos{festivosProyecto.length > 0 ? ` (${festivosProyecto.length})` : ''}
+                        </button>
+                      </>
+                    )}
                   </p>
                 )}
               </div>
 
-              {/* Activity Actions & Toggle View Mode */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                
-                {/* View Mode Toggle */}
-                <div style={{ display: 'flex', background: 'var(--bg-glass)', padding: '0.25rem', borderRadius: '10px', border: '1px solid var(--border-glass)' }}>
-                  <button 
-                    onClick={() => setViewMode('list')}
-                    style={{
-                      background: viewMode === 'list' ? 'var(--primary)' : 'transparent',
-                      color: viewMode === 'list' ? '#fff' : 'var(--text-muted)',
-                      border: 'none',
-                      padding: '0.4rem 0.8rem',
-                      borderRadius: '8px',
-                      fontSize: '0.8rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.4rem'
-                    }}
-                  >
-                    <ListChecks size={15} /> Tabla
-                  </button>
-
-                  <button 
-                    onClick={() => setViewMode('gantt')}
-                    style={{
-                      background: viewMode === 'gantt' ? 'var(--primary)' : 'transparent',
-                      color: viewMode === 'gantt' ? '#fff' : 'var(--text-muted)',
-                      border: 'none',
-                      padding: '0.4rem 0.8rem',
-                      borderRadius: '8px',
-                      fontSize: '0.8rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.4rem'
-                    }}
-                  >
-                    <BarChart2 size={15} /> Diagrama Gantt
-                  </button>
-
-                  <button
-                    onClick={() => setViewMode('curvas')}
-                    style={{
-                      background: viewMode === 'curvas' ? 'var(--primary)' : 'transparent',
-                      color: viewMode === 'curvas' ? '#fff' : 'var(--text-muted)',
-                      border: 'none',
-                      padding: '0.4rem 0.8rem',
-                      borderRadius: '8px',
-                      fontSize: '0.8rem',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.4rem'
-                    }}
-                  >
-                    <TrendingUp size={15} /> Curva S
-                  </button>
+              {/* Selector de vista y acciones sobre las actividades */}
+              <div className="proyecto-acciones">
+                <div className="conmutador-vista">
+                  {botonVista('list', <ListChecks size={15} />, 'Tabla')}
+                  {botonVista('gantt', <BarChart2 size={15} />, 'Diagrama Gantt')}
+                  {botonVista('curvas', <TrendingUp size={15} />, 'Curva S')}
                 </div>
 
                 {canEditSelectedProject && (
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button 
+                  <div className="acciones-actividad">
+                    <button
                       onClick={() => setIsExcelModalOpen(true)}
-                      className="btn-secondary"
-                      style={{ fontSize: '0.85rem', borderColor: 'rgba(16, 185, 129, 0.4)', color: 'var(--accent-emerald)' }}
+                      className="btn-secondary boton-importar-excel"
                       title="Importar actividades masivamente desde un archivo Excel (.xlsx)"
                     >
                       <FileSpreadsheet size={16} />
                       <span>Importar Excel</span>
                     </button>
 
-                    <button 
+                    <button
                       onClick={() => {
                         setActivityToEdit(null);
                         setIsActivityModalOpen(true);
                       }}
                       className="btn-primary"
-                      style={{ fontSize: '0.85rem' }}
                     >
                       <Plus size={16} />
                       <span>Nueva Actividad</span>
                     </button>
                   </div>
                 )}
-
               </div>
             </div>
           </div>
         ) : (
-          /* PROJECTS DASHBOARD HEADER */
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '2rem' }}>
+          /* Encabezado de la lista de proyectos: título y buscador */
+          <div className="proyectos-cabecera">
             <div>
-              <h2 style={{ fontSize: '1.8rem', fontWeight: 800, margin: 0 }} className="gradient-text">
-                Proyectos Registrados
-              </h2>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              <h2 className="proyectos-titulo gradient-text">Proyectos Registrados</h2>
+              <p className="proyectos-subtitulo">
                 Gestiona tus proyectos y asigna autorizaciones a otros colaboradores por su UUID de Supabase.
               </p>
             </div>
 
-            {/* Search Input */}
-            <div style={{ position: 'relative', width: '100%', maxWidth: '320px' }}>
-              <Search size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-              <input 
-                type="text" 
+            <div className="buscador">
+              <Search size={16} color="var(--text-muted)" className="buscador-icono" />
+              <input
+                type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Buscar proyecto por nombre..."
                 className="input-field"
-                style={{ paddingLeft: '2.4rem' }}
               />
             </div>
           </div>
         )}
 
-        {/* MAIN BODY CONTENT */}
+        {/* CONTENIDO: vistas del proyecto abierto, o la rejilla de proyectos */}
         {selectedProject ? (
           <div>
-            {/* Gantt Chart View */}
+            {/* Vista Diagrama de Gantt */}
             {viewMode === 'gantt' && (
-              <GanttChart activities={activities} />
+              <GanttChart
+                activities={activities}
+                festivos={festivosProyecto}
+                plazo={plazoProyecto}
+                canEdit={canEditSelectedProject}
+                onUpdateActivity={handleSaveActivity}
+              />
             )}
 
-            {/* Curva S View */}
+            {/* Vista Curva S */}
             {viewMode === 'curvas' && (
               <CurvaS activities={activities} />
             )}
 
-            {/* Activities Table View */}
-            <div className="glass-panel" style={{ padding: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>
+            {/* Tabla de actividades (siempre visible bajo la vista elegida) */}
+            <div className="glass-panel panel-actividades">
+              <div className="panel-actividades-cabecera">
+                <h3 className="panel-actividades-titulo">
                   Lista de Actividades ({activities.length} / Máximo 100)
                 </h3>
               </div>
 
-              <ActivityList 
+              <ActivityList
                 activities={activities}
                 onEditActivity={(act) => {
                   setActivityToEdit(act);
@@ -697,15 +740,15 @@ export default function ProjectDashboard() {
             </div>
           </div>
         ) : (
-          /* PROJECTS GRID */
+          /* Rejilla de proyectos (o estado vacío si no hay ninguno) */
           filteredProjects.length === 0 ? (
-            <div className="glass-panel" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+            <div className="glass-panel proyectos-vacio">
               <FolderPlus size={48} color="var(--text-subtle)" style={{ marginBottom: '1rem' }} />
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-muted)' }}>No se encontraron proyectos</h3>
-              <p style={{ fontSize: '0.88rem', color: 'var(--text-subtle)', maxWidth: '400px', margin: '0.5rem auto 1.5rem' }}>
+              <h3 className="proyectos-vacio-titulo">No se encontraron proyectos</h3>
+              <p className="proyectos-vacio-texto">
                 Crea tu primer proyecto para definir componentes, registrar actividades y dar acceso a otros usuarios.
               </p>
-              <button 
+              <button
                 onClick={() => {
                   setProjectToEdit(null);
                   setIsProjectModalOpen(true);
@@ -717,9 +760,9 @@ export default function ProjectDashboard() {
               </button>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem' }}>
+            <div className="rejilla-proyectos">
               {filteredProjects.map(proj => (
-                <ProjectCard 
+                <ProjectCard
                   key={proj.uuid_proyecto}
                   project={proj}
                   currentUser={user}
@@ -768,6 +811,23 @@ export default function ProjectDashboard() {
         onClose={() => setIsAccessModalOpen(false)}
         project={projectForAccess}
         onSaveAccess={handleSaveAccess}
+      />
+
+      <PlazoProyectoModal
+        isOpen={isPlazoModalOpen}
+        onClose={() => setIsPlazoModalOpen(false)}
+        onSave={handleUpdateProject}
+        inicioActual={plazoProyecto.inicio}
+        finActual={plazoProyecto.fin}
+        actividades={activities}
+        festivos={festivosProyecto}
+      />
+
+      <FestivosModal
+        isOpen={isFestivosModalOpen}
+        onClose={() => setIsFestivosModalOpen(false)}
+        onSave={(festivos) => handleUpdateProject({ festivos })}
+        festivos={festivosProyecto}
       />
 
       <ActivityFormModal 

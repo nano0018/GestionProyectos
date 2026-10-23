@@ -63,45 +63,48 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, currentUser 
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
         
-        {/* Header */}
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        {/* Encabezado */}
+        <div className="modal-encabezado">
+          <div className="grupo-titulo">
             {isRegister ? <UserPlus size={20} color="#6366f1" /> : <LogIn size={20} color="#6366f1" />}
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>
+            <h3 className="modal-titulo-chico">
               {isRegister ? 'Crear Cuenta Supabase' : 'Iniciar Sesión'}
             </h3>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <button onClick={onClose} className="modal-cerrar">
             <X size={18} />
           </button>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: '1.5rem' }}>
-          
+        {/* Cuerpo */}
+        <div className="modal-cuerpo-simple">
+
+          {/* UUID del usuario con sesión activa, con botón para copiarlo */}
           {currentUser && (
-            <div style={{ background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.3)', borderRadius: '10px', padding: '0.85rem', marginBottom: '1.25rem' }}>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Tu UUID de Usuario Activo:</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.3)', padding: '0.35rem 0.65rem', borderRadius: '6px' }}>
-                <code style={{ fontSize: '0.78rem', color: '#a5b4fc' }}>{currentUser.id}</code>
-                <button onClick={copyUuid} style={{ background: 'none', border: 'none', color: '#a5b4fc', cursor: 'pointer' }}>
+            <div className="tarjeta-uuid">
+              <div className="tarjeta-uuid-etiqueta">Tu UUID de Usuario Activo:</div>
+              <div className="tarjeta-uuid-valor">
+                <code>{currentUser.id}</code>
+                <button onClick={copyUuid} className="boton-copiar">
                   {copiedUuid ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
                 </button>
               </div>
             </div>
           )}
 
+          {/* Error de autenticación */}
           {errorMsg && (
-            <div style={{ background: 'rgba(244, 63, 94, 0.15)', color: '#fda4af', border: '1px solid rgba(244, 63, 94, 0.3)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '1rem' }}>
+            <div className="alerta-error espaciada">
               {errorMsg}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Formulario de correo y contraseña */}
+          <form onSubmit={handleSubmit} className="auth-formulario">
             <div>
               <label className="input-label">Correo Electrónico</label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <div className="campo-con-icono">
+                <Mail size={16} color="var(--text-muted)" className="campo-icono" />
                 <input 
                   type="email" 
                   required 
@@ -109,15 +112,14 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, currentUser 
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu.email@ejemplo.com"
                   className="input-field"
-                  style={{ paddingLeft: '2.4rem' }}
                 />
               </div>
             </div>
 
             <div>
               <label className="input-label">Contraseña</label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <div className="campo-con-icono">
+                <Lock size={16} color="var(--text-muted)" className="campo-icono" />
                 <input 
                   type="password" 
                   required 
@@ -125,21 +127,21 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess, currentUser 
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="input-field"
-                  style={{ paddingLeft: '2.4rem' }}
                 />
               </div>
             </div>
 
-            <button type="submit" className="btn-primary" disabled={loading} style={{ justifyContent: 'center', marginTop: '0.5rem' }}>
+            <button type="submit" className="btn-primary boton-centrado" disabled={loading}>
               {loading ? 'Procesando...' : (isRegister ? 'Registrarse' : 'Entrar a la Plataforma')}
             </button>
           </form>
 
-          <div style={{ marginTop: '1.25rem', textAlign: 'center', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+          {/* Alternar entre iniciar sesión y registrarse */}
+          <div className="auth-pie">
             {isRegister ? '¿Ya tienes una cuenta?' : '¿No tienes cuenta?'} {' '}
             <button 
-              onClick={() => setIsRegister(!isRegister)} 
-              style={{ background: 'none', border: 'none', color: '#a5b4fc', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}
+              onClick={() => setIsRegister(!isRegister)}
+              className="boton-enlace"
             >
               {isRegister ? 'Inicia sesión aquí' : 'Regístrate'}
             </button>

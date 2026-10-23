@@ -1,0 +1,278 @@
+{
+  ".astro/content-assets.mjs": {
+    "mtime": 1787789711.3762355,
+    "seen": 1792716284.3411314,
+    "ast_hash": "8aeea624d36ca2b4c7d0e0748b76ba28",
+    "semantic_hash": "8aeea624d36ca2b4c7d0e0748b76ba28"
+  },
+  ".astro/content-modules.mjs": {
+    "mtime": 1787789711.8301237,
+    "seen": 1792716284.3411314,
+    "ast_hash": "8aeea624d36ca2b4c7d0e0748b76ba28",
+    "semantic_hash": "8aeea624d36ca2b4c7d0e0748b76ba28"
+  },
+  ".astro/content.d.ts": {
+    "mtime": 1792720428.587438,
+    "seen": 1792720437.567538,
+    "ast_hash": "4aaaf7e07990466432e5a0fcf9b2e58c",
+    "semantic_hash": ""
+  },
+  ".astro/dev.json": {
+    "mtime": 1792716682.27868,
+    "seen": 1792717519.2483304,
+    "ast_hash": "7d40884eaa7aba022405fc4bfa518354",
+    "semantic_hash": ""
+  },
+  ".astro/settings.json": {
+    "mtime": 1792716683.0916774,
+    "seen": 1792717519.2483304,
+    "ast_hash": "d722bc1db0fb72eaa238f0fdd6d0098a",
+    "semantic_hash": ""
+  },
+  ".astro/types.d.ts": {
+    "mtime": 1792720428.587438,
+    "seen": 1792720437.5685356,
+    "ast_hash": "f3d48b2aa569815a445d3509aa161559",
+    "semantic_hash": ""
+  },
+  ".claude/settings.json": {
+    "mtime": 1792716123.6334436,
+    "seen": 1792716284.3411314,
+    "ast_hash": "68e9a2c4845cbcbcf2a49b852e5c578a",
+    "semantic_hash": "68e9a2c4845cbcbcf2a49b852e5c578a"
+  },
+  "__tests__/lib/supabase.test.js": {
+    "mtime": 1787789713.165174,
+    "seen": 1792716284.3411314,
+    "ast_hash": "8681e7cec93355d83620e9920ac6f5dc",
+    "semantic_hash": "8681e7cec93355d83620e9920ac6f5dc"
+  },
+  "astro.config.mjs": {
+    "mtime": 1787789713.1661737,
+    "seen": 1792716284.3411314,
+    "ast_hash": "cc5ff24c5718e773e36c3e135057a56e",
+    "semantic_hash": "cc5ff24c5718e773e36c3e135057a56e"
+  },
+  "e2e/curva-s.spec.js": {
+    "mtime": 1787789713.1676824,
+    "seen": 1792716284.3411314,
+    "ast_hash": "ed4ddc2dd3fc501ebc6e9d90827e0b26",
+    "semantic_hash": "ed4ddc2dd3fc501ebc6e9d90827e0b26"
+  },
+  "jest.config.mjs": {
+    "mtime": 1787789713.1692934,
+    "seen": 1792716284.3411314,
+    "ast_hash": "06242fffdfc543bfe42586fa9250b3e9",
+    "semantic_hash": "06242fffdfc543bfe42586fa9250b3e9"
+  },
+  "jest.setup.mjs": {
+    "mtime": 1787789713.3418317,
+    "seen": 1792716284.3411314,
+    "ast_hash": "332d21c338456883acfd5a856353a3b7",
+    "semantic_hash": "332d21c338456883acfd5a856353a3b7"
+  },
+  "package.json": {
+    "mtime": 1787789713.3433383,
+    "seen": 1792716284.3411314,
+    "ast_hash": "7ea43e9387be510c436b6dfdc58c1e75",
+    "semantic_hash": "7ea43e9387be510c436b6dfdc58c1e75"
+  },
+  "playwright.config.js": {
+    "mtime": 1787789713.4466212,
+    "seen": 1792716284.3411314,
+    "ast_hash": "490f007c240c055eb83a001e298788f4",
+    "semantic_hash": "490f007c240c055eb83a001e298788f4"
+  },
+  "schema.sql": {
+    "mtime": 1787789713.453144,
+    "seen": 1792716284.3411314,
+    "ast_hash": "",
+    "semantic_hash": ""
+  },
+  "scripts/wait-for-astro-dev.mjs": {
+    "mtime": 1787789713.4762418,
+    "seen": 1792716284.3411314,
+    "ast_hash": "0edb287c5918a9342b427ea9849ff6e5",
+    "semantic_hash": "0edb287c5918a9342b427ea9849ff6e5"
+  },
+  "src/components/ProjectDashboard.jsx": {
+    "mtime": 1792720424.3487086,
+    "seen": 1792720437.5750647,
+    "ast_hash": "b5a162b146ba64fd8fad63ad918391ff",
+    "semantic_hash": ""
+  },
+  "src/components/activities/ActivityExcelModal.jsx": {
+    "mtime": 1792720332.036811,
+    "seen": 1792720437.5750647,
+    "ast_hash": "545ce5bd87999ed7ea35f6d260d643c2",
+    "semantic_hash": ""
+  },
+  "src/components/activities/ActivityFormModal.jsx": {
+    "mtime": 1792720368.1529517,
+    "seen": 1792720437.5750647,
+    "ast_hash": "87f70b374813136f8a0250994b1e161d",
+    "semantic_hash": ""
+  },
+  "src/components/activities/ActivityList.jsx": {
+    "mtime": 1792719995.7287922,
+    "seen": 1792720437.5750647,
+    "ast_hash": "6ecc5d56503501ea48cefacd788c0e85",
+    "semantic_hash": ""
+  },
+  "src/components/activities/CurvaS.jsx": {
+    "mtime": 1792720158.5579782,
+    "seen": 1792720437.5750647,
+    "ast_hash": "0448cf40080b5328cd157999f0aa0f87",
+    "semantic_hash": ""
+  },
+  "src/components/activities/GanttChart.jsx": {
+    "mtime": 1792720152.627039,
+    "seen": 1792720437.5750647,
+    "ast_hash": "6a34e7a24b3a0bb47f21099422307511",
+    "semantic_hash": ""
+  },
+  "src/components/auth/AuthModal.jsx": {
+    "mtime": 1792720259.5590584,
+    "seen": 1792720437.5750647,
+    "ast_hash": "c934bd972301df28fbd72699d4c6d147",
+    "semantic_hash": ""
+  },
+  "src/components/projects/AccessManagerModal.jsx": {
+    "mtime": 1792720259.5600607,
+    "seen": 1792720437.5750647,
+    "ast_hash": "b9a04b5ce8f6224ec2cde496dbb849c7",
+    "semantic_hash": ""
+  },
+  "src/components/projects/ProjectCard.jsx": {
+    "mtime": 1792720259.5610902,
+    "seen": 1792720437.5750647,
+    "ast_hash": "6301cc287ac062e9469d3892dfe20dc4",
+    "semantic_hash": ""
+  },
+  "src/components/projects/ProjectFormModal.jsx": {
+    "mtime": 1792720259.5605667,
+    "seen": 1792720437.5750647,
+    "ast_hash": "3b1eef6bafc8d112ab03bcc32fb114a6",
+    "semantic_hash": ""
+  },
+  "src/components/ui/Navbar.jsx": {
+    "mtime": 1792720298.3461635,
+    "seen": 1792720437.5750647,
+    "ast_hash": "71302d42488ff010f50f81bb13483d1c",
+    "semantic_hash": ""
+  },
+  "src/components/ui/SqlSetupModal.jsx": {
+    "mtime": 1792720298.3468125,
+    "seen": 1792720437.5750647,
+    "ast_hash": "05d59faf515f87354f4af7429dd2c249",
+    "semantic_hash": ""
+  },
+  "src/env.d.ts": {
+    "mtime": 1787789716.1387942,
+    "seen": 1792716284.3411314,
+    "ast_hash": "a3a3279a863dd6123f96f98bfdcebeda",
+    "semantic_hash": "a3a3279a863dd6123f96f98bfdcebeda"
+  },
+  "src/layouts/Layout.astro": {
+    "mtime": 1787789716.143808,
+    "seen": 1792716284.3411314,
+    "ast_hash": "3999d5d342569635f9bf8b1f95d059d4",
+    "semantic_hash": "3999d5d342569635f9bf8b1f95d059d4"
+  },
+  "src/lib/curvaS.js": {
+    "mtime": 1792717068.271458,
+    "seen": 1792717519.255873,
+    "ast_hash": "bb9075a181ef57b1baa07fbbffc721cf",
+    "semantic_hash": ""
+  },
+  "src/lib/supabase.js": {
+    "mtime": 1792717484.0665069,
+    "seen": 1792717519.255873,
+    "ast_hash": "e2f30a0c393496c7a2a3244eb41f6374",
+    "semantic_hash": ""
+  },
+  "src/lib/types.ts": {
+    "mtime": 1792719529.1373372,
+    "seen": 1792719655.2107162,
+    "ast_hash": "c508231956ccf545e7bb53aee29ecb27",
+    "semantic_hash": ""
+  },
+  "src/pages/index.astro": {
+    "mtime": 1787789716.4072714,
+    "seen": 1792716284.3411314,
+    "ast_hash": "7593a47facf7a2ef83cf179746692d60",
+    "semantic_hash": "7593a47facf7a2ef83cf179746692d60"
+  },
+  "tsconfig.json": {
+    "mtime": 1787789716.508432,
+    "seen": 1792716284.3411314,
+    "ast_hash": "01adab4859c393497cc38b6dbd948dd9",
+    "semantic_hash": "01adab4859c393497cc38b6dbd948dd9"
+  },
+  "CLAUDE.md": {
+    "mtime": 1792716123.5707793,
+    "seen": 1792716284.3411314,
+    "ast_hash": "67d88e9d0760c3ba54c75dfd9551c1c5",
+    "semantic_hash": "67d88e9d0760c3ba54c75dfd9551c1c5"
+  },
+  "README.md": {
+    "mtime": 1792719655.6109343,
+    "seen": 1792720437.5790725,
+    "ast_hash": "334cf4e4e1a94c7781d45edced2fecdb",
+    "semantic_hash": ""
+  },
+  "__tests__/lib/curvaS.test.js": {
+    "mtime": 1792717501.1207714,
+    "seen": 1792717519.2483304,
+    "ast_hash": "d2aab97ee1d7df7c5647872d960f6afb",
+    "semantic_hash": ""
+  },
+  "src/components/activities/AvanceRealModal.jsx": {
+    "mtime": 1792720401.7665825,
+    "seen": 1792720437.5750647,
+    "ast_hash": "94f8991cabed535610e33d0822f20e88",
+    "semantic_hash": ""
+  },
+  "public/favicon.svg": {
+    "mtime": 1787789713.4511466,
+    "seen": 1792717519.258062,
+    "ast_hash": "ef17c4597933d7a8f65fd42bb1093095",
+    "semantic_hash": ""
+  },
+  "__tests__/lib/dependencias.test.js": {
+    "mtime": 1792718950.4174154,
+    "seen": 1792718965.4510484,
+    "ast_hash": "1462928eee2595b3402460a9bd9b3bfd",
+    "semantic_hash": ""
+  },
+  "src/lib/dependencias.js": {
+    "mtime": 1792718941.6672876,
+    "seen": 1792718965.4612484,
+    "ast_hash": "3729db49844e13b8bf302f7cd383d546",
+    "semantic_hash": ""
+  },
+  "__tests__/lib/diasHabiles.test.js": {
+    "mtime": 1792719520.3345428,
+    "seen": 1792719655.1977484,
+    "ast_hash": "1aaddf1db13ec807365da1d2d9e49655",
+    "semantic_hash": ""
+  },
+  "src/components/projects/FestivosModal.jsx": {
+    "mtime": 1792720401.7681012,
+    "seen": 1792720437.5750647,
+    "ast_hash": "65d2e7c926f07d30f3386990dcabf635",
+    "semantic_hash": ""
+  },
+  "src/components/projects/PlazoProyectoModal.jsx": {
+    "mtime": 1792720401.7681012,
+    "seen": 1792720437.5750647,
+    "ast_hash": "897ab4b0142eefa1e226488fcd9413ae",
+    "semantic_hash": ""
+  },
+  "src/lib/diasHabiles.js": {
+    "mtime": 1792719520.278216,
+    "seen": 1792719655.2107162,
+    "ast_hash": "194b9d83eb91a1b2342dcf06187ee93b",
+    "semantic_hash": ""
+  }
+}

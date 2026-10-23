@@ -3,6 +3,9 @@ export interface Proyecto {
   nombre_proyecto: string;
   descripcion_proyecto?: string;
   componentes: number; // Max 10
+  inicio_proyecto?: string | null; // YYYY-MM-DD; si falta se deduce de las actividades
+  fin_proyecto?: string | null;
+  festivos?: string[]; // fechas YYYY-MM-DD que no cuentan como días hábiles
   uuid_usuario_dueno: string;
   uuids_usuarios_autorizados: string[];
   created_at?: string;
@@ -18,6 +21,8 @@ export interface Actividad {
   inicio_actividad: string; // YYYY-MM-DD
   fin_actividad: string; // YYYY-MM-DD
   avance_real: number; // 0..100, % de avance real registrado manualmente
+  traslapes?: Record<number, number>; // por id de predecesora: días que puede empezar antes de que ella termine
+  historial_avance?: { fecha: string; avance: number }[]; // registros de avance real por fecha
   uuid_usuario_dueno: string;
   uuids_usuarios_autorizados: string[];
   created_at?: string;

@@ -23,15 +23,19 @@ export default function CurvaS({ activities }) {
   // Fecha de referencia ("hoy" por defecto) hasta la cual se dibuja el avance real.
   const [fechaCorte, setFechaCorte] = useState(hoyActualStr);
 
-  if (!activities || activities.length === 0) return null;
+  const hayActividades = !!activities && activities.length > 0;
 
-  const { minDate, maxDate } = getRangoFechasProyecto(activities);
-  const puntos = useMemo(() => calcularCurvaS(activities, { fechaCorte }), [activities, fechaCorte]);
-  const totales = useMemo(() => calcularAvanceTotal(activities, fechaCorte), [activities, fechaCorte]);
+  // Los hooks van antes del return temprano (regla de React)
+  const puntos = useMemo(() => (hayActividades ? calcularCurvaS(activities, { fechaCorte }) : []), [activities, fechaCorte]);
+  const totales = useMemo(() => (hayActividades ? calcularAvanceTotal(activities, fechaCorte) : null), [activities, fechaCorte]);
   const marcadorPunto = useMemo(
-    () => (marcadorFecha ? calcularPuntoEnFecha(activities, marcadorFecha, fechaCorte) : null),
+    () => (hayActividades && marcadorFecha ? calcularPuntoEnFecha(activities, marcadorFecha, fechaCorte) : null),
     [activities, marcadorFecha, fechaCorte]
   );
+
+  if (!hayActividades) return null;
+
+  const { minDate, maxDate } = getRangoFechasProyecto(activities);
 
   const totalMs = Math.max(maxDate.getTime() - minDate.getTime(), 86400000);
   const plotW = CHART_W - PAD_LEFT - PAD_RIGHT;
@@ -75,10 +79,16 @@ export default function CurvaS({ activities }) {
   };
   const ocultarTooltip = () => setHoverPoint(null);
 
+  // Captura el panel sin los elementos marcados con data-export-ignore (botones) y con el fondo del tema
+  const capturar = () => toPng(chartRef.current, {
+    filter: (n) => !n.dataset?.exportIgnore,
+    backgroundColor: getComputedStyle(document.body).backgroundColor
+  });
+
   const handleExportPNG = async () => {
     if (!chartRef.current) return;
     try {
-      const dataUrl = await toPng(chartRef.current);
+      const dataUrl = await capturar();
       const link = document.createElement('a');
       link.download = 'curva_s.png';
       link.href = dataUrl;
@@ -91,7 +101,7 @@ export default function CurvaS({ activities }) {
   const handleExportPDF = async () => {
     if (!chartRef.current) return;
     try {
-      const dataUrl = await toPng(chartRef.current);
+      const dataUrl = await capturar();
       const pdf = new jsPDF('landscape');
       const img = new Image();
       img.src = dataUrl;
@@ -106,29 +116,30 @@ export default function CurvaS({ activities }) {
     }
   };
 
-  return (
-    <div ref={chartRef} className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+  // Elemento de la leyenda: línea de color + texto
+  const itemLeyenda = (color, texto) => (
+    <span className="curva-leyenda-item">
+      <span className="curva-leyenda-linea" style={{ background: color }} />
+      {texto}
+    </span>
+  );
 
-      {/* Header */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-glass)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+  return (
+    <div ref={chartRef} className="glass-panel panel-grafico">
+
+      {/* Cabecera: título e insignias de avance */}
+      <div className="curva-cabecera">
+        <div className="grupo-titulo">
           <TrendingUp size={20} color="#6366f1" />
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>
-            Curva S de Avance del Proyecto
-          </h3>
+          <h3 className="modal-titulo">Curva S de Avance del Proyecto</h3>
         </div>
 
-        {/* Stat badges */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+        <div className="curva-insignias">
           <span className="badge badge-indigo">Programado: {totales.avanceProgramado.toFixed(1)}%</span>
           <span className="badge badge-emerald">Real: {totales.avanceReal.toFixed(1)}%</span>
           <span
-            style={{
-              display: 'flex', alignItems: 'center', gap: '0.3rem',
-              fontSize: '0.72rem', fontWeight: 800, padding: '0.28rem 0.65rem',
-              borderRadius: '9999px', color: desviacionColor,
-              background: `${desviacionColor}22`, border: `1px solid ${desviacionColor}55`
-            }}
+            className="curva-desviacion"
+            style={{ color: desviacionColor, background: `${desviacionColor}22`, border: `1px solid ${desviacionColor}55` }}
             title="Diferencia entre avance real y avance programado a la fecha"
           >
             <DesviacionIcon size={13} />
@@ -137,63 +148,34 @@ export default function CurvaS({ activities }) {
         </div>
       </div>
 
-      {/* Fecha de Corte (referencia para el avance real; por defecto hoy) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>Fecha de corte (avance real):</span>
+      {/* Fecha de corte (referencia para el avance real; por defecto hoy) */}
+      <div className="curva-corte">
+        <span className="curva-corte-titulo">Fecha de corte (avance real):</span>
         <input
           type="date"
           value={fechaCorte}
           min={minFechaStr}
           max={maxFechaStr}
           onChange={(e) => setFechaCorte(e.target.value)}
-          style={{
-            fontSize: '0.78rem', padding: '0.3rem 0.5rem', borderRadius: '8px',
-            border: '1px solid rgba(16, 185, 129, 0.4)', background: 'rgba(0,0,0,0.25)',
-            color: 'var(--text-main)', colorScheme: 'dark'
-          }}
+          className="curva-input-fecha corte"
         />
         {fechaCorte !== hoyActualStr() && (
-          <button
-            onClick={() => setFechaCorte(hoyActualStr())}
-            style={{
-              background: 'transparent', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.4)',
-              padding: '0.3rem 0.7rem', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700,
-              cursor: 'pointer'
-            }}
-          >
+          <button onClick={() => setFechaCorte(hoyActualStr())} className="curva-boton-hoy">
             Hoy
           </button>
         )}
       </div>
 
-      {/* Export Buttons + Marcador Custom */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-        <button
-          onClick={handleExportPNG}
-          style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-            color: '#fff', border: 'none', padding: '0.4rem 1rem', borderRadius: '8px',
-            fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: '0.4rem',
-            boxShadow: '0 0 10px rgba(16,185,129,0.35)'
-          }}
-        >
+      {/* Exportación y marcador personalizado (se excluye de la imagen exportada) */}
+      <div data-export-ignore className="curva-acciones">
+        <button onClick={handleExportPNG} className="boton-exportar png">
           📷 Exportar PNG
         </button>
-        <button
-          onClick={handleExportPDF}
-          style={{
-            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-            color: '#fff', border: 'none', padding: '0.4rem 1rem', borderRadius: '8px',
-            fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: '0.4rem',
-            boxShadow: '0 0 10px rgba(99,102,241,0.35)'
-          }}
-        >
+        <button onClick={handleExportPDF} className="boton-exportar pdf">
           📄 Exportar PDF
         </button>
 
-        <div style={{ width: '1px', height: '20px', background: 'var(--border-glass)', margin: '0 0.25rem' }} />
+        <div className="curva-separador" />
 
         {marcadorFecha ? (
           <>
@@ -203,61 +185,32 @@ export default function CurvaS({ activities }) {
               min={minFechaStr}
               max={maxFechaStr}
               onChange={(e) => setMarcadorFecha(e.target.value)}
-              style={{
-                fontSize: '0.78rem', padding: '0.3rem 0.5rem', borderRadius: '8px',
-                border: '1px solid rgba(245, 158, 11, 0.4)', background: 'rgba(0,0,0,0.25)',
-                color: 'var(--text-main)', colorScheme: 'dark'
-              }}
+              className="curva-input-fecha marcador"
             />
-            <button
-              onClick={() => setMarcadorFecha(null)}
-              style={{
-                background: 'transparent', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.4)',
-                padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem'
-              }}
-            >
+            <button onClick={() => setMarcadorFecha(null)} className="curva-boton-marcador">
               <Trash2 size={14} /> Eliminar Marcador
             </button>
           </>
         ) : (
-          <button
-            onClick={handleAgregarMarcador}
-            style={{
-              background: 'transparent', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.4)',
-              padding: '0.4rem 0.8rem', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem'
-            }}
-          >
+          <button onClick={handleAgregarMarcador} className="curva-boton-marcador">
             <Plus size={14} /> Agregar Marcador
           </button>
         )}
       </div>
 
-      {/* Legend */}
-      <div style={{ display: 'flex', gap: '1.25rem', marginBottom: '0.75rem', fontSize: '0.78rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <span style={{ width: '18px', height: '3px', background: '#6366f1', display: 'inline-block', borderRadius: '2px' }} />
-          Avance Programado
-        </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <span style={{ width: '18px', height: '3px', background: '#10b981', display: 'inline-block', borderRadius: '2px' }} />
-          Avance Real
-        </span>
-        {marcadorFecha && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <span style={{ width: '18px', height: '3px', background: '#f59e0b', display: 'inline-block', borderRadius: '2px' }} />
-            Marcador ({marcadorFecha})
-          </span>
-        )}
+      {/* Leyenda */}
+      <div className="curva-leyenda">
+        {itemLeyenda('#6366f1', 'Avance Programado')}
+        {itemLeyenda('#10b981', 'Avance Real')}
+        {marcadorFecha && itemLeyenda('#f59e0b', `Marcador (${marcadorFecha})`)}
       </div>
 
-      {/* Chart */}
-      <div style={{ overflowX: 'auto', paddingBottom: '0.5rem' }}>
-        <div style={{ minWidth: '720px' }}>
-          <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} width="100%" height="360" style={{ display: 'block', overflow: 'visible' }}>
+      {/* Gráfico */}
+      <div className="curva-desplazable">
+        <div className="curva-lienzo">
+          <svg viewBox={`0 0 ${CHART_W} ${CHART_H}`} width="100%" height="360" className="curva-svg">
 
-            {/* Horizontal grid lines + Y labels */}
+            {/* Líneas horizontales de la cuadrícula y etiquetas del eje Y */}
             {gridLevels.map((lvl) => (
               <g key={lvl}>
                 <line
@@ -274,7 +227,7 @@ export default function CurvaS({ activities }) {
               </g>
             ))}
 
-            {/* X axis date labels */}
+            {/* Etiquetas de fecha del eje X */}
             {xLabels.map((lbl) => (
               <text
                 key={lbl.key}
@@ -289,7 +242,7 @@ export default function CurvaS({ activities }) {
               </text>
             ))}
 
-            {/* Línea vertical de corte (avance real se dibuja hasta esta fecha) */}
+            {/* Línea vertical de corte (el avance real se dibuja hasta esta fecha) */}
             {isCorteVisible && (
               <line
                 x1={corteX} x2={corteX}
@@ -298,7 +251,7 @@ export default function CurvaS({ activities }) {
               />
             )}
 
-            {/* Marcador custom vertical (amarillo) */}
+            {/* Línea vertical del marcador personalizado (amarillo) */}
             {marcadorFecha && marcadorPunto && (
               <line
                 x1={xForFecha(marcadorFecha)} x2={xForFecha(marcadorFecha)}
@@ -307,14 +260,14 @@ export default function CurvaS({ activities }) {
               />
             )}
 
-            {/* Curva Programada */}
+            {/* Curva programada */}
             <polyline
               points={pathProgramado}
               fill="none" stroke="#6366f1" strokeWidth="2.5"
               strokeLinejoin="round" strokeLinecap="round"
             />
 
-            {/* Curva Real */}
+            {/* Curva real */}
             {puntosReales.length > 0 && (
               <polyline
                 points={pathReal}
@@ -323,7 +276,7 @@ export default function CurvaS({ activities }) {
               />
             )}
 
-            {/* Punto final de avance real (hoy) — hover muestra tooltip */}
+            {/* Punto final del avance real (en la fecha de corte): al pasar el cursor muestra el recuadro */}
             {puntosReales.length > 0 && (() => {
               const ultimo = puntosReales[puntosReales.length - 1];
               const cx = xForFecha(ultimo.fecha);
@@ -339,7 +292,7 @@ export default function CurvaS({ activities }) {
               );
             })()}
 
-            {/* Punto del marcador custom (amarillo) — hover muestra tooltip */}
+            {/* Punto del marcador personalizado (amarillo): al pasar el cursor muestra el recuadro */}
             {marcadorFecha && marcadorPunto && (() => {
               const cx = xForFecha(marcadorFecha);
               const cy = yForValor(marcadorPunto.programado);
@@ -354,11 +307,12 @@ export default function CurvaS({ activities }) {
               );
             })()}
 
-            {/* Tooltip flotante */}
+            {/* Recuadro flotante con real, programado y desviación del punto */}
             {hoverPoint && (() => {
               const puntoDesviacion = hoverPoint.real - hoverPoint.programado;
               const puntoDesvColor = puntoDesviacion >= 1 ? 'var(--accent-emerald)' : puntoDesviacion <= -1 ? 'var(--accent-rose)' : 'var(--accent-amber)';
 
+              // Se mantiene dentro del gráfico y se coloca arriba del punto (o abajo si no cabe)
               let boxX = hoverPoint.x - TOOLTIP_W / 2;
               boxX = Math.max(PAD_LEFT - 4, Math.min(CHART_W - PAD_RIGHT - TOOLTIP_W + 4, boxX));
 
@@ -367,25 +321,13 @@ export default function CurvaS({ activities }) {
 
               return (
                 <foreignObject x={boxX} y={boxY} width={TOOLTIP_W} height={TOOLTIP_H} style={{ pointerEvents: 'none', overflow: 'visible' }}>
-                  <div
-                    xmlns="http://www.w3.org/1999/xhtml"
-                    style={{
-                      background: 'var(--modal-bg)',
-                      border: '1px solid var(--border-glass)',
-                      borderRadius: '8px',
-                      padding: '0.5rem 0.65rem',
-                      fontSize: '11px',
-                      fontFamily: 'inherit',
-                      lineHeight: 1.55,
-                      boxShadow: 'var(--modal-shadow)'
-                    }}
-                  >
+                  <div xmlns="http://www.w3.org/1999/xhtml" className="curva-tooltip">
                     <div style={{ color: 'var(--accent-emerald)', fontWeight: 700 }}>Real: {hoverPoint.real.toFixed(1)}%</div>
                     <div style={{ color: 'var(--primary)', fontWeight: 700 }}>Programado: {hoverPoint.programado.toFixed(1)}%</div>
                     <div style={{ color: puntoDesvColor, fontWeight: 700 }}>
                       {puntoDesviacion >= 0 ? '+' : ''}{puntoDesviacion.toFixed(1)}% vs. plan
                     </div>
-                    <div style={{ color: 'var(--text-muted)', marginTop: '2px' }}>{hoverPoint.fecha}</div>
+                    <div className="curva-tooltip-fecha">{hoverPoint.fecha}</div>
                   </div>
                 </foreignObject>
               );

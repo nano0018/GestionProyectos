@@ -13,12 +13,12 @@ export default function ProjectCard({
   const isAuthorized = project.uuids_usuarios_autorizados?.includes(currentUser?.id);
 
   return (
-    <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}>
-      
+    <div className="glass-card tarjeta-proyecto">
+
       <div>
-        {/* Header Badges */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        {/* Insignias (componentes y rol del usuario) y menú del propietario */}
+        <div className="tarjeta-proyecto-insignias">
+          <div className="tarjeta-proyecto-etiquetas">
             <span className="badge badge-indigo">
               <Layers size={12} />
               {project.componentes} {project.componentes === 1 ? 'Componente' : 'Componentes'}
@@ -33,19 +33,18 @@ export default function ProjectCard({
                 <Users size={12} /> Usuario Autorizado
               </span>
             ) : (
-              <span className="badge" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}>
+              <span className="badge badge-neutra">
                 Lectura / Acceso
               </span>
             )}
           </div>
 
-          {/* Settings / Owner Menu */}
+          {/* Acciones del propietario: accesos, editar y eliminar */}
           {isOwner && (
-            <div style={{ display: 'flex', gap: '0.3rem' }}>
+            <div className="tarjeta-proyecto-menu">
               <button 
                 onClick={() => onManageAccess(project)}
                 className="btn-secondary"
-                style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
                 title="Gestionar Usuarios Autorizados (UUIDs)"
               >
                 <Users size={13} />
@@ -53,7 +52,6 @@ export default function ProjectCard({
               <button 
                 onClick={() => onEditProject(project)}
                 className="btn-secondary"
-                style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
                 title="Editar Proyecto"
               >
                 <Edit3 size={13} />
@@ -61,7 +59,6 @@ export default function ProjectCard({
               <button 
                 onClick={() => onDeleteProject(project.uuid_proyecto)}
                 className="btn-danger"
-                style={{ padding: '0.3rem 0.5rem', fontSize: '0.75rem' }}
                 title="Eliminar Proyecto"
               >
                 <Trash2 size={13} />
@@ -70,19 +67,19 @@ export default function ProjectCard({
           )}
         </div>
 
-        {/* Title and Description */}
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.4rem', lineHeight: 1.3 }}>
+        {/* Título y descripción */}
+        <h3 className="tarjeta-proyecto-titulo">
           {project.nombre_proyecto}
         </h3>
         
-        <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1.25rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+        <p className="tarjeta-proyecto-descripcion">
           {project.descripcion_proyecto || 'Sin descripción asignada.'}
         </p>
       </div>
 
-      {/* Footer Info & Select CTA */}
-      <div style={{ borderTop: '1px solid var(--border-glass)', paddingTop: '1rem', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-subtle)' }}>
+      {/* Pie: colaboradores y botón para abrir el proyecto */}
+      <div className="tarjeta-proyecto-pie">
+        <div className="tarjeta-proyecto-colaboradores">
           <Users size={13} />
           <span>{project.uuids_usuarios_autorizados?.length || 0} Colaboradores</span>
         </div>
@@ -90,7 +87,6 @@ export default function ProjectCard({
         <button 
           onClick={() => onSelectProject(project)}
           className="btn-primary"
-          style={{ fontSize: '0.82rem', padding: '0.45rem 0.9rem' }}
         >
           <span>Ver Actividades</span>
           <ArrowRight size={14} />

@@ -6,8 +6,8 @@ Aplicación web para la **gestión y seguimiento de proyectos y sus actividades*
 
 - **Gestión de proyectos**: crear, editar, eliminar y buscar proyectos.
 - **Gestión de actividades**: alta, edición y eliminación de actividades con límite de 100 por proyecto.
-- **Dependencias**: cada actividad puede tener predecesoras y dependientes (por ejemplo, `[1, 2]` → `[3, 4]`).
-- **Diagrama de Gantt**: visualización del cronograma con exportación a **PNG** y **PDF**.
+- **Dependencias**: cada actividad puede tener predecesoras y dependientes (por ejemplo, `[1, 2]` → `[3, 4]`). La relación se sincroniza en ambos lados, se rechazan ciclos, las dependientes se empujan hacia adelante (fin-a-inicio) cuando una predecesora termina después de su inicio, y el Gantt dibuja flechas entre las barras.
+- **Diagrama de Gantt**: visualización del cronograma con exportación a **PNG** y **PDF**. Las barras se pueden arrastrar (mover o cambiar inicio/fin); las duraciones se miden en **días hábiles** (lunes a viernes, sin festivos). El plazo del proyecto y sus festivos (manuales o importados desde Excel) se editan desde la cabecera del proyecto.
 - **Importación desde Excel**: carga masiva de actividades desde archivos `.xlsx`/`.xls` con plantilla descargable.
 - **Control de acceso**: cada proyecto/actividad tiene un dueño y una lista de usuarios autorizados.
 - **Autenticación**: sesiones de usuario gestionadas por Supabase (expiración de 2 días).

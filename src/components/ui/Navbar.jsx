@@ -11,7 +11,7 @@ export default function Navbar({
 }) {
   const [isDark, setIsDark] = useState(true);
 
-  // Init from localStorage on mount
+  // Al montar: lee el tema guardado (o el del sistema) y lo aplica
   useEffect(() => {
     const saved = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -24,6 +24,7 @@ export default function Navbar({
     }
   }, []);
 
+  // Alterna el tema y lo guarda en localStorage
   const toggleTheme = () => {
     const next = !isDark;
     setIsDark(next);
@@ -36,41 +37,29 @@ export default function Navbar({
   };
 
   return (
-    <header className="glass-panel" style={{ borderRadius: 0, borderTop: 0, borderLeft: 0, borderRight: 0, position: 'sticky', top: 0, zIndex: 50 }}>
-      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        
-        {/* Brand logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ 
-            width: '40px', 
-            height: '40px', 
-            borderRadius: '12px', 
-            background: 'linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 0 15px rgba(99, 102, 241, 0.4)'
-          }}>
+    <header className="glass-panel barra-superior">
+      <div className="barra-superior-contenido">
+
+        {/* Marca: logo y nombre de la aplicación */}
+        <div className="marca">
+          <div className="marca-logo">
             <LayoutGrid size={22} color="#fff" />
           </div>
           <div>
-            <h1 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, lineHeight: 1.1 }}>
+            <h1 className="marca-titulo">
               Task<span className="gradient-text">Flow</span> Pro
             </h1>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-              Seguimiento de Proyectos y Actividades
-            </span>
+            <span className="marca-subtitulo">Seguimiento de Proyectos y Actividades</span>
           </div>
         </div>
 
-        {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          
-          {/* Supabase Status Indicator */}
-          <button 
+        {/* Controles de la derecha */}
+        <div className="barra-acciones">
+
+          {/* Estado de Supabase: abre el instalador SQL */}
+          <button
             onClick={onOpenSqlModal}
-            className="btn-secondary" 
-            style={{ fontSize: '0.82rem', padding: '0.45rem 0.85rem' }}
+            className="btn-secondary boton-estado-bd"
             title="Ver configuración SQL y estado de Supabase"
           >
             <Database size={15} color={isSupabaseConnected ? '#10b981' : '#f59e0b'} />
@@ -79,18 +68,15 @@ export default function Navbar({
             </span>
           </button>
 
+          {/* Crear proyecto (solo con sesión iniciada) */}
           {user && (
-            <button 
-              onClick={onNewProject}
-              className="btn-primary"
-              style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
-            >
+            <button onClick={onNewProject} className="btn-primary boton-nuevo-proyecto">
               <Plus size={16} />
               <span>Nuevo Proyecto</span>
             </button>
           )}
 
-          {/* Theme Toggle */}
+          {/* Cambio de tema claro / oscuro */}
           <button
             onClick={toggleTheme}
             className="theme-toggle"
@@ -100,30 +86,24 @@ export default function Navbar({
             {isDark ? <Sun size={18} color="#fcd34d" /> : <Moon size={18} color="#6366f1" />}
           </button>
 
-          {/* User Auth Section */}
+          {/* Sesión: datos del usuario y salir, o botón para iniciar sesión */}
           {user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--bg-glass)', padding: '0.35rem 0.75rem', borderRadius: '12px', border: '1px solid var(--border-glass)' }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--primary-light)', color: '#a5b4fc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem' }}>
+            <div className="usuario-activo">
+              <div className="usuario-avatar">
                 {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {user.email}
-                </span>
-                <span style={{ fontSize: '0.68rem', color: 'var(--text-subtle)', fontFamily: 'monospace' }}>
+              <div className="usuario-datos">
+                <span className="usuario-email">{user.email}</span>
+                <span className="usuario-id">
                   ID: {user.id ? `${user.id.substring(0, 8)}...` : ''}
                 </span>
               </div>
-              <button 
-                onClick={onLogout}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.3rem', display: 'flex', alignItems: 'center' }}
-                title="Cerrar sesión"
-              >
+              <button onClick={onLogout} className="boton-salir" title="Cerrar sesión">
                 <LogOut size={16} />
               </button>
             </div>
           ) : (
-            <button onClick={onOpenAuth} className="btn-primary" style={{ fontSize: '0.85rem' }}>
+            <button onClick={onOpenAuth} className="btn-primary boton-iniciar-sesion">
               <KeyRound size={16} />
               <span>Iniciar Sesión / Registro</span>
             </button>

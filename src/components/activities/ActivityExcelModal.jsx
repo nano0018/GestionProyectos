@@ -1,3 +1,4 @@
+import { calcularTraslapes } from '../../lib/dependencias';
 import React, { useState } from 'react';
 import { X, FileSpreadsheet, Download, Upload, Check, AlertCircle, Calendar, ArrowRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -205,7 +206,8 @@ export default function ActivityExcelModal({
           };
         });
 
-        setParsedRows(processed);
+        // Las fechas del Excel se respetan: el traslape de cada actividad se deduce de ellas
+        setParsedRows(processed.map((row) => ({ ...row, traslapes: calcularTraslapes(row, processed) })));
       } catch (err) {
         console.error('Error al procesar archivo Excel:', err);
         setErrorMsg('Error al leer el archivo Excel. Asegúrese de que tenga formato .xlsx o .xls válido.');
@@ -224,71 +226,70 @@ export default function ActivityExcelModal({
     onClose();
   };
 
+  // Texto de una lista de ids: "[1;2]" o "-" si está vacía
+  const listaIds = (ids) => (ids.length > 0 ? `[${ids.join(';')}]` : '-');
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '720px' }}>
-        
-        {/* Header */}
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+
+        {/* Encabezado */}
+        <div className="modal-encabezado">
+          <div className="grupo-titulo">
             <FileSpreadsheet size={22} color="#10b981" />
             <div>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>Importar Actividades desde Excel (.xlsx)</h3>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+              <h3 className="modal-titulo">Importar Actividades desde Excel (.xlsx)</h3>
+              <p className="texto-secundario">
                 Descarga la plantilla o sube tu archivo diligenciado
               </p>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <button onClick={onClose} className="modal-cerrar">
             <X size={18} />
           </button>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: '1.5rem' }}>
-          
-          {/* Action Cards: Download Template vs Upload */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-            
-            {/* Download Template Box */}
-            <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '12px', padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        {/* Cuerpo */}
+        <div className="modal-cuerpo-simple">
+
+          {/* Tarjetas: descargar plantilla y subir archivo */}
+          <div className="excel-tarjetas">
+
+            {/* 1. Descargar plantilla */}
+            <div className="excel-tarjeta plantilla">
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6ee7b7', fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.4rem' }}>
+                <div className="excel-tarjeta-titulo">
                   <Download size={18} />
                   <span>1. Descargar Plantilla</span>
                 </div>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                <p className="excel-tarjeta-texto">
                   Obtén el formato oficial `.xlsx` pre-configurado con las columnas y formatos correctos.
                 </p>
               </div>
 
-              <button 
-                onClick={handleDownloadTemplate}
-                className="btn-secondary"
-                style={{ marginTop: '1rem', width: '100%', justifyContent: 'center', fontSize: '0.82rem', borderColor: 'rgba(16, 185, 129, 0.4)', color: '#6ee7b7' }}
-              >
+              <button onClick={handleDownloadTemplate} className="btn-secondary excel-tarjeta-boton">
                 <Download size={15} />
                 <span>Descargar plantilla.xlsx</span>
               </button>
             </div>
 
-            {/* Upload File Box */}
-            <div style={{ background: 'rgba(99, 102, 241, 0.08)', border: '1px solid rgba(99, 102, 241, 0.25)', borderRadius: '12px', padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            {/* 2. Subir archivo diligenciado */}
+            <div className="excel-tarjeta subir">
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#a5b4fc', fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.4rem' }}>
+                <div className="excel-tarjeta-titulo">
                   <Upload size={18} />
                   <span>2. Subir Archivo Diligenciado</span>
                 </div>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                <p className="excel-tarjeta-texto">
                   Selecciona tu archivo `.xlsx` o `.xls` para procesar y cargar las actividades al proyecto.
                 </p>
               </div>
 
-              <label className="btn-primary" style={{ marginTop: '1rem', width: '100%', justifyContent: 'center', fontSize: '0.82rem', cursor: 'pointer' }}>
+              <label className="btn-primary excel-tarjeta-boton subir">
                 <Upload size={15} />
                 <span>{file ? file.name : 'Seleccionar Archivo Excel'}</span>
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   accept=".xlsx, .xls, .csv"
                   onChange={handleFileUpload}
                   style={{ display: 'none' }}
@@ -298,47 +299,45 @@ export default function ActivityExcelModal({
 
           </div>
 
-          {/* Errors */}
+          {/* Error al leer el archivo */}
           {errorMsg && (
-            <div style={{ background: 'rgba(244, 63, 94, 0.15)', color: '#fda4af', border: '1px solid rgba(244, 63, 94, 0.3)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="alerta-error con-icono">
               <AlertCircle size={16} color="#f43f5e" />
               <span>{errorMsg}</span>
             </div>
           )}
 
-          {/* Preview of Parsed Rows */}
+          {/* Vista previa de las actividades leídas */}
           {parsedRows.length > 0 && (
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                <span className="input-label" style={{ margin: 0, color: '#10b981' }}>
+              <div className="excel-previa-cabecera">
+                <span className="input-label excel-previa-titulo">
                   Vista Previa ({parsedRows.length} actividades listas para importar)
                 </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  IDs asignados automáticamente (1 - 100)
-                </span>
+                <span className="excel-previa-nota">IDs asignados automáticamente (1 - 100)</span>
               </div>
 
-              <div style={{ maxHeight: '220px', overflowY: 'auto', border: '1px solid var(--border-glass)', borderRadius: '10px', background: 'rgba(0,0,0,0.3)' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+              <div className="excel-previa-tabla-contenedor">
+                <table className="excel-previa-tabla">
                   <thead>
-                    <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid var(--border-glass)', textTransform: 'uppercase', color: 'var(--text-muted)', fontSize: '0.72rem' }}>
-                      <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left' }}>#ID</th>
-                      <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left' }}>Nombre Actividad</th>
-                      <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left' }}>Predecesoras</th>
-                      <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left' }}>Dependientes</th>
-                      <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left' }}>Fechas (Inicio - Fin)</th>
-                      <th style={{ padding: '0.5rem 0.75rem', textAlign: 'left' }}>Avance Real</th>
+                    <tr>
+                      <th>#ID</th>
+                      <th>Nombre Actividad</th>
+                      <th>Predecesoras</th>
+                      <th>Dependientes</th>
+                      <th>Fechas (Inicio - Fin)</th>
+                      <th>Avance Real</th>
                     </tr>
                   </thead>
                   <tbody>
                     {parsedRows.map((row, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                        <td style={{ padding: '0.5rem 0.75rem', fontWeight: 700, color: '#a5b4fc' }}>#{row.id_actividad}</td>
-                        <td style={{ padding: '0.5rem 0.75rem', color: 'var(--text-main)', fontWeight: 600 }}>{row.nombre_actividad}</td>
-                        <td style={{ padding: '0.5rem 0.75rem', color: '#fcd34d' }}>{row.actividades_predecesoras.length > 0 ? `[${row.actividades_predecesoras.join(';')}]` : '-'}</td>
-                        <td style={{ padding: '0.5rem 0.75rem', color: '#a5b4fc' }}>{row.actividades_dependientes.length > 0 ? `[${row.actividades_dependientes.join(';')}]` : '-'}</td>
-                        <td style={{ padding: '0.5rem 0.75rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{row.inicio_actividad} → {row.fin_actividad}</td>
-                        <td style={{ padding: '0.5rem 0.75rem', color: '#6ee7b7', fontWeight: 600 }}>{row.avance_real}%</td>
+                      <tr key={idx}>
+                        <td className="col-id">#{row.id_actividad}</td>
+                        <td className="col-nombre">{row.nombre_actividad}</td>
+                        <td className="col-predecesoras">{listaIds(row.actividades_predecesoras)}</td>
+                        <td className="col-dependientes">{listaIds(row.actividades_dependientes)}</td>
+                        <td className="col-fechas">{row.inicio_actividad} → {row.fin_actividad}</td>
+                        <td className="col-avance">{row.avance_real}%</td>
                       </tr>
                     ))}
                   </tbody>
@@ -349,13 +348,13 @@ export default function ActivityExcelModal({
 
         </div>
 
-        {/* Footer */}
-        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-glass)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+        {/* Pie: cancelar y confirmar la importación */}
+        <div className="modal-pie con-acciones">
           <button onClick={onClose} className="btn-secondary">
             Cancelar
           </button>
-          <button 
-            onClick={handleConfirmImport} 
+          <button
+            onClick={handleConfirmImport}
             className="btn-primary"
             disabled={parsedRows.length === 0 || isProcessing}
             style={{ opacity: parsedRows.length === 0 ? 0.5 : 1 }}

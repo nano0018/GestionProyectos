@@ -113,6 +113,10 @@ export const getDemoActivities = () => {
       inicio_actividad: formatDate(today),
       fin_actividad: addDays(today, 5),
       avance_real: 35,
+      historial_avance: [
+        { fecha: addDays(today, 2), avance: 15 },
+        { fecha: addDays(today, 4), avance: 35 }
+      ],
       uuid_usuario_dueno: 'user-demo-1111-2222-333344445555',
       uuids_usuarios_autorizados: []
     },

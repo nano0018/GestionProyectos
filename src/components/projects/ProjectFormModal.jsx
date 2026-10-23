@@ -25,11 +25,11 @@ export default function ProjectFormModal({ isOpen, onClose, onSave, projectToEdi
   if (!currentUser) {
     return (
       <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center', padding: '2rem' }}>
-          <p style={{ fontSize: '0.95rem', color: 'var(--text-muted)' }}>
+        <div className="modal-content modal-aviso" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+          <p>
             Debes iniciar sesión para crear o editar un proyecto.
           </p>
-          <button onClick={onClose} className="btn-secondary" style={{ marginTop: '1rem' }}>
+          <button onClick={onClose} className="btn-secondary">
             Cerrar
           </button>
         </div>
@@ -72,24 +72,24 @@ export default function ProjectFormModal({ isOpen, onClose, onSave, projectToEdi
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
         
-        {/* Header */}
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-glass)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        {/* Encabezado */}
+        <div className="modal-encabezado">
+          <div className="grupo-titulo">
             <Layers size={20} color="#6366f1" />
-            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>
+            <h3 className="modal-titulo">
               {projectToEdit ? 'Editar Proyecto' : 'Nuevo Proyecto'}
             </h3>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+          <button onClick={onClose} className="modal-cerrar">
             <X size={18} />
           </button>
         </div>
 
-        {/* Body Form */}
-        <form onSubmit={handleSubmit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="modal-cuerpo">
           
           {error && (
-            <div style={{ background: 'rgba(244, 63, 94, 0.15)', color: '#fda4af', border: '1px solid rgba(244, 63, 94, 0.3)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.82rem' }}>
+            <div className="alerta-error">
               {error}
             </div>
           )}
@@ -131,13 +131,13 @@ export default function ProjectFormModal({ isOpen, onClose, onSave, projectToEdi
               placeholder="1"
               className="input-field"
             />
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', marginTop: '0.3rem', display: 'block' }}>
+            <span className="ayuda-campo">
               Si se deja en blanco, se asigna automáticamente 1 (máximo permitido 10).
             </span>
           </div>
 
-          {/* Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+          {/* Acciones */}
+          <div className="modal-acciones separada">
             <button type="button" onClick={onClose} className="btn-secondary">
               Cancelar
             </button>

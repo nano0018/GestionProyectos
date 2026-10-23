@@ -1,25 +1,35 @@
 import React, { useState, useRef } from 'react';
-import { Calendar, Clock, Flag, AlertTriangle, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Clock, Flag } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
+import { inicioMinimo } from '../../lib/dependencias';
+import { contarHabiles, moverBarra, setFestivos } from '../../lib/diasHabiles';
 
-export default function GanttChart({ activities }) {
+const ROW_H = 50;
+const ROW_GAP = 14;
+
+export default function GanttChart({ activities, festivos = [], plazo = null, canEdit = false, onUpdateActivity }) {
   const [scaleMode, setScaleMode] = useState('dias'); // 'dias' | 'semanas' | 'meses'
+  const [drag, setDrag] = useState(null); // { id, modo, startX, ancho, fechas } mientras se arrastra una barra
   const chartRef = useRef(null);
+  const rowsRef = useRef(null);
 
   if (!activities || activities.length === 0) return null;
 
   // Sort activities by start date
-  const sorted = [...activities].sort((a, b) =>
-    new Date(a.inicio_actividad).getTime() - new Date(b.inicio_actividad).getTime()
-  );
+  // El orden de las filas se fija con las fechas guardadas; durante un arrastre solo la barra activa usa las provisionales
+  const sorted = [...activities]
+    .sort((a, b) => new Date(a.inicio_actividad).getTime() - new Date(b.inicio_actividad).getTime())
+    .map((a) => (drag && drag.id === a.id_actividad ? { ...a, ...drag.fechas } : a));
+  const fest = setFestivos(festivos);
+  const limites = plazo?.definido ? { min: plazo.inicio, max: plazo.fin } : {};
 
   // Find min start date and max end date among activities
-  const minDate = new Date(Math.min(...sorted.map(a => new Date(a.inicio_actividad).getTime())));
-  const calculatedMaxEndMs = Math.max(...sorted.map(a => new Date(a.fin_actividad).getTime()));
+  const minDate = new Date(Math.min(...sorted.map(a => new Date(a.inicio_actividad).getTime()), ...(plazo?.definido ? [new Date(plazo.inicio).getTime()] : [])));
+  const calculatedMaxEndMs = Math.max(...sorted.map(a => new Date(a.fin_actividad).getTime()), ...(plazo?.definido ? [new Date(plazo.fin).getTime()] : []));
   const calculatedMaxEndDate = new Date(calculatedMaxEndMs);
 
-  // Deadline is always the farthest end date among activities
+  // Deadline: fin del proyecto si está definido, o la fecha de fin más lejana de las actividades
   const deadlineDateStr = calculatedMaxEndDate.toISOString().split('T')[0];
   const inicioDateStr = minDate.toISOString().split('T')[0];
   const deadlineDateObj = new Date(deadlineDateStr);
@@ -39,19 +49,17 @@ export default function GanttChart({ activities }) {
   };
 
   const getDurationDays = (startStr, endStr) => {
-    const s = new Date(startStr);
-    const e = new Date(endStr);
-    return Math.max(1, Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    return Math.max(1, contarHabiles(startStr, endStr, fest)); // días hábiles
   };
 
   // Format Duration according to active scale
   const formatDurationText = (days) => {
     if (scaleMode === 'semanas') {
-      const weeks = (days / 7).toFixed(1);
+      const weeks = (days / 5).toFixed(1);
       return `${weeks} sem`;
     }
     if (scaleMode === 'meses') {
-      const months = (days / 30).toFixed(1);
+      const months = (days / 21).toFixed(1);
       return `${months} mes`;
     }
     return `${days}d`;
@@ -107,13 +115,74 @@ export default function GanttChart({ activities }) {
   };
 
   const scaleColumns = generateScaleColumns();
+  // Se muestra solo cada n-ésima etiqueta para que no se amontonen
+  // (la grilla vertical usa las mismas columnas).
+  const maxEtiquetas = scaleMode === 'semanas' ? 5 : scaleMode === 'meses' ? 6 : 8;
+  const labelStride = Math.max(1, Math.ceil(scaleColumns.length / maxEtiquetas));
   const deadlinePercent = getPositionPercent(deadlineDateStr);
+
+  // Flechas de dependencia: una por cada par (predecesora -> actividad). Conflicto si la
+  // actividad empieza antes de que termine su predecesora.
+  const finBarra = (a) => {
+    const l = getPositionPercent(a.inicio_actividad);
+    return l + Math.max(getPositionPercent(a.fin_actividad) - l, 4);
+  };
+  const filaDe = new Map(sorted.map((a, i) => [a.id_actividad, i]));
+  const flechas = sorted.flatMap((a, i) =>
+    (a.actividades_predecesoras || [])
+      .filter((p) => filaDe.has(p))
+      .map((p) => {
+        const pred = sorted[filaDe.get(p)];
+        return {
+          key: `${p}-${a.id_actividad}`,
+          x1: finBarra(pred),
+          y1: filaDe.get(p) * (ROW_H + ROW_GAP) + ROW_H / 2,
+          x2: getPositionPercent(a.inicio_actividad),
+          y2: i * (ROW_H + ROW_GAP) + ROW_H / 2,
+          conflicto: a.inicio_actividad < inicioMinimo(a, pred)
+        };
+      })
+  );
+
+  // Arrastre de barras: 'move' mueve conservando los días hábiles, 'start'/'end' cambian un extremo
+  const iniciarArrastre = (e, act, modo) => {
+    if (!canEdit || !onUpdateActivity || !rowsRef.current) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const ancho = rowsRef.current.getBoundingClientRect().width - 300;
+    setDrag({ id: act.id_actividad, modo, startX: e.clientX, ancho, fechas: { inicio_actividad: act.inicio_actividad, fin_actividad: act.fin_actividad } });
+  };
+
+  const moverArrastre = (e, act) => {
+    if (!drag || drag.id !== act.id_actividad) return;
+    const original = activities.find((a) => a.id_actividad === act.id_actividad);
+    const delta = Math.round(((e.clientX - drag.startX) / drag.ancho) * (totalTimeMs / 86400000));
+    setDrag({ ...drag, fechas: moverBarra(original, drag.modo, delta, fest, limites) });
+  };
+
+  const terminarArrastre = (act) => {
+    if (!drag || drag.id !== act.id_actividad) return;
+    const original = activities.find((a) => a.id_actividad === act.id_actividad);
+    const { fechas } = drag;
+    setDrag(null);
+    if (fechas.inicio_actividad !== original.inicio_actividad || fechas.fin_actividad !== original.fin_actividad) {
+      onUpdateActivity({ ...original, ...fechas });
+    }
+  };
+
+  // Captura el panel sin los elementos marcados con data-export-ignore (botones de exportación)
+  // El panel es translúcido: se le da el fondo del body para que PNG/PDF no queden sobre blanco (modo oscuro más claro).
+  const capturar = () => toPng(chartRef.current, {
+    filter: (n) => !n.dataset?.exportIgnore,
+    backgroundColor: getComputedStyle(document.body).backgroundColor
+  });
 
   // Export as PNG
   const handleExportPNG = async () => {
     if (!chartRef.current) return;
     try {
-      const dataUrl = await toPng(chartRef.current);
+      const dataUrl = await capturar();
       const link = document.createElement('a');
       link.download = 'gantt_diagram.png';
       link.href = dataUrl;
@@ -127,7 +196,7 @@ export default function GanttChart({ activities }) {
   const handleExportPDF = async () => {
     if (!chartRef.current) return;
     try {
-      const dataUrl = await toPng(chartRef.current);
+      const dataUrl = await capturar();
       const pdf = new jsPDF('landscape');
       const img = new Image();
       img.src = dataUrl;
@@ -147,384 +216,183 @@ export default function GanttChart({ activities }) {
   const todayPercent = getPositionPercent(todayStr);
   const isTodayVisible = todayPercent > 0 && todayPercent < 100;
 
+  // Posición horizontal (CSS) de una línea vertical dentro del área de barras, desde un % del eje de tiempo
+  const posicionLinea = (percent) => `calc(300px + (100% - 300px) * ${percent / 100})`;
+
+  // Pastilla del selector de escala
+  const botonEscala = (modo, texto) => (
+    <button
+      onClick={() => setScaleMode(modo)}
+      className={`gantt-escala-boton${scaleMode === modo ? ' activo' : ''}`}
+    >
+      {texto}
+    </button>
+  );
+
   return (
-    <div ref={chartRef} className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+    <div ref={chartRef} className="glass-panel panel-grafico">
 
-      {/* Header Controls */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-glass)' }}>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+      {/* Cabecera: título y selector de escala */}
+      <div className="gantt-cabecera">
+        <div className="grupo-titulo">
           <Clock size={20} color="#6366f1" />
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, margin: 0 }}>
-            Diagrama de Gantt y Cronograma
-          </h3>
+          <h3 className="modal-titulo">Diagrama de Gantt y Cronograma</h3>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-
-          {/* SCALE MODE TOGGLE PILLS */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>Escala:</span>
-
-            <div style={{ display: 'flex', background: 'var(--bg-glass)', padding: '0.25rem', borderRadius: '10px', border: '1px solid var(--border-glass)' }}>
-              <button
-                onClick={() => setScaleMode('dias')}
-                style={{
-                  background: scaleMode === 'dias' ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
-                  color: scaleMode === 'dias' ? '#fff' : 'var(--text-muted)',
-                  border: 'none',
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '8px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                Días
-              </button>
-
-              <button
-                onClick={() => setScaleMode('semanas')}
-                style={{
-                  background: scaleMode === 'semanas' ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
-                  color: scaleMode === 'semanas' ? '#fff' : 'var(--text-muted)',
-                  border: 'none',
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '8px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                Semanas
-              </button>
-
-              <button
-                onClick={() => setScaleMode('meses')}
-                style={{
-                  background: scaleMode === 'meses' ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'transparent',
-                  color: scaleMode === 'meses' ? '#fff' : 'var(--text-muted)',
-                  border: 'none',
-                  padding: '0.35rem 0.75rem',
-                  borderRadius: '8px',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                Meses
-              </button>
+        <div className="gantt-controles">
+          <div className="gantt-escala">
+            <span className="gantt-escala-titulo">Escala:</span>
+            <div className="gantt-escala-pastillas">
+              {botonEscala('dias', 'Días')}
+              {botonEscala('semanas', 'Semanas')}
+              {botonEscala('meses', 'Meses')}
             </div>
           </div>
-
         </div>
-
       </div>
 
-      {/* Export Buttons Row */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-        <button
-          onClick={handleExportPNG}
-          style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-            color: '#fff',
-            border: 'none',
-            padding: '0.4rem 1rem',
-            borderRadius: '8px',
-            fontSize: '0.78rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            boxShadow: '0 0 10px rgba(16,185,129,0.35)',
-            transition: 'all 0.2s ease'
-          }}
-        >
+      {/* Botones de exportación (se excluyen de la imagen exportada) */}
+      <div data-export-ignore className="fila-exportar">
+        <button onClick={handleExportPNG} className="boton-exportar png">
           📷 Exportar PNG
         </button>
-        <button
-          onClick={handleExportPDF}
-          style={{
-            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-            color: '#fff',
-            border: 'none',
-            padding: '0.4rem 1rem',
-            borderRadius: '8px',
-            fontSize: '0.78rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-            boxShadow: '0 0 10px rgba(99,102,241,0.35)',
-            transition: 'all 0.2s ease'
-          }}
-        >
+        <button onClick={handleExportPDF} className="boton-exportar pdf">
           📄 Exportar PDF
         </button>
       </div>
 
-      {/* Gantt Timeline Container */}
-      <div style={{ overflowX: 'auto', paddingBottom: '0.75rem' }}>
-        <div style={{ minWidth: '720px' }}>
+      {/* Contenedor con scroll horizontal del cronograma */}
+      <div className="gantt-desplazable">
+        <div className="gantt-lienzo">
 
-          {/* Header Row Ticks */}
-          <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-glass)' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', alignSelf: 'flex-end' }}>
-              Actividad (#ID)
-            </span>
+          {/* Encabezado: título de la columna de nombres + marcas de la escala de tiempo */}
+          <div className="gantt-encabezado">
+            <span className="gantt-encabezado-titulo">Actividad (#ID)</span>
 
-            {/* Dynamic Scale Column Labels */}
-            <div style={{ position: 'relative', height: scaleMode === 'dias' ? '56px' : '24px', width: '100%' }}>
+            <div className="gantt-marcas">
               {scaleColumns.map((col, idx) => (
-                // Skip idx=0 — it's shown as the yellow START flag in the timeline area
-                idx === 0 ? null : (
-                  <div
-                    key={idx}
-                    style={{
-                      position: 'absolute',
-                      left: `${col.percent}%`,
-                      bottom: 0,
-                      transform: scaleMode === 'dias'
-                        ? 'translateX(-100%) rotate(-45deg)'
-                        : 'translateX(-50%)',
-                      transformOrigin: scaleMode === 'dias' ? 'right bottom' : 'center bottom',
-                      fontSize: '0.7rem',
-                      fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      whiteSpace: 'nowrap',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: scaleMode === 'dias' ? 'flex-start' : 'center',
-                      gap: '2px',
-                    }}
-                  >
+                // La marca 0 no se dibuja: ya la representa la bandera amarilla de INICIO
+                idx === 0 || idx % labelStride !== 0 ? null : (
+                  <div key={idx} className="gantt-marca" style={{ left: `${col.percent}%` }}>
                     {col.label}
-                    {/* Tick mark line below label */}
-                    {scaleMode !== 'dias' && (
-                      <span style={{ display: 'block', width: '1px', height: '5px', background: 'var(--border-active)', marginTop: '2px' }} />
-                    )}
+                    <span className="gantt-marca-tick" />
                   </div>
                 )
               ))}
             </div>
           </div>
 
-          {/* Activity Rows with Timeline Area */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '0.85rem', position: 'relative', paddingBottom: '3.5rem' }}>
+          {/* Filas de actividades y capas superpuestas (flechas, líneas e insignias) */}
+          <div ref={rowsRef} className="gantt-filas" style={{ gap: `${ROW_GAP}px` }}>
 
+            {/* Flechas de dependencia (fin de la predecesora -> inicio de la dependiente) */}
+            <svg className="gantt-flechas" style={{ height: sorted.length * (ROW_H + ROW_GAP) }}>
+              <defs>
+                {/* Puntas de flecha: normal (gris) y en conflicto (rojo) */}
+                {[['ok', '#94a3b8'], ['mal', '#f43f5e']].map(([k, c]) => (
+                  <marker key={k} id={`flecha-${k}`} markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+                    <path d="M0,0 L7,3.5 L0,7 z" fill={c} />
+                  </marker>
+                ))}
+              </defs>
+              {flechas.map((f) => (
+                <line key={f.key} x1={`${f.x1}%`} y1={f.y1} x2={`${f.x2}%`} y2={f.y2}
+                  stroke={f.conflicto ? '#f43f5e' : '#94a3b8'} strokeWidth="1.5" strokeDasharray="4 3"
+                  markerEnd={`url(#flecha-${f.conflicto ? 'mal' : 'ok'})`} />
+              ))}
+            </svg>
+
+            {/* Una fila por actividad */}
             {sorted.map((act) => {
               const leftPercent = getPositionPercent(act.inicio_actividad);
               const rightPercent = getPositionPercent(act.fin_actividad);
               const widthPercent = Math.max(rightPercent - leftPercent, 4);
               const days = getDurationDays(act.inicio_actividad, act.fin_actividad);
               const durationLabel = formatDurationText(days);
+              const arrastrando = drag?.id === act.id_actividad;
+
+              // Eventos de arrastre compartidos por el cuerpo de la barra y sus asas
+              const eventosArrastre = (modo) => ({
+                onPointerDown: (e) => iniciarArrastre(e, act, modo),
+                onPointerMove: (e) => moverArrastre(e, act),
+                onPointerUp: () => terminarArrastre(act),
+                onPointerCancel: () => setDrag(null)
+              });
 
               return (
-                <div
-                  key={act.id_actividad}
-                  style={{ display: 'grid', gridTemplateColumns: '300px 1fr', alignItems: 'center', minHeight: '50px' }}
-                >
-                  {/* Left Label */}
-                  <div style={{ paddingRight: '0.75rem' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.85rem', marginRight: '0.4rem' }}>
-                      #{act.id_actividad}
-                    </span>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-main)', fontWeight: 500, wordBreak: 'break-word', whiteSpace: 'normal', display: 'inline' }}>
-                      {act.nombre_actividad}
-                    </span>
+                <div key={act.id_actividad} className="gantt-fila" style={{ minHeight: `${ROW_H}px` }}>
+                  {/* Etiqueta: ID y nombre de la actividad */}
+                  <div className="gantt-etiqueta">
+                    <span className="gantt-etiqueta-id">#{act.id_actividad}</span>
+                    <span className="gantt-etiqueta-nombre">{act.nombre_actividad}</span>
                   </div>
 
-                  {/* Right Bar Area with Vertical Guides & Deadline Line */}
-                  <div style={{
-                    position: 'relative',
-                    height: '50px',
-                    background: 'var(--bg-glass)',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-glass)',
-                    overflow: 'visible'
-                  }}>
-
-                    {/* Vertical Scale Grid Lines */}
+                  {/* Pista de la barra, con la cuadrícula vertical de la escala */}
+                  <div className="gantt-pista" style={{ height: `${ROW_H}px` }}>
                     {scaleColumns.map((col, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          position: 'absolute',
-                          left: `${col.percent}%`,
-                          top: 0,
-                          bottom: 0,
-                          width: '1px',
-                          background: 'var(--border-glass)',
-                          pointerEvents: 'none'
-                        }}
-                      />
+                      idx % labelStride !== 0 ? null : (
+                        <div key={idx} className="gantt-guia" style={{ left: `${col.percent}%` }} />
+                      )
                     ))}
 
-                    {/* Gantt Bar */}
+                    {/* Barra de la actividad: arrastrable para moverla */}
                     <div
+                      {...eventosArrastre('move')}
+                      className="gantt-barra"
                       style={{
-                        position: 'absolute',
                         left: `${leftPercent}%`,
                         width: `${widthPercent}%`,
-                        top: '4px',
-                        bottom: '4px',
-                        background: 'linear-gradient(90deg, #6366f1 0%, #06b6d4 100%)',
-                        borderRadius: '6px',
-                        boxShadow: '0 0 12px rgba(99, 102, 241, 0.4)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0 0.6rem',
-                        color: '#fff',
-                        fontSize: '0.72rem',
-                        fontWeight: 700,
-                        whiteSpace: 'nowrap',
-                        zIndex: 2
+                        cursor: canEdit ? (arrastrando ? 'grabbing' : 'grab') : 'default'
                       }}
-                      title={`${act.nombre_actividad} (${days} días: ${act.inicio_actividad} al ${act.fin_actividad})`}
+                      title={`${act.nombre_actividad} (${days} días hábiles: ${act.inicio_actividad} al ${act.fin_actividad})`}
                     >
-                      <span>{durationLabel}</span>
+                      {/* Asas de los extremos: cambian el inicio o el fin */}
+                      {canEdit && ['start', 'end'].map((lado) => (
+                        <span
+                          key={lado}
+                          {...eventosArrastre(lado)}
+                          className={`gantt-asa ${lado === 'start' ? 'inicio' : 'fin'}`}
+                        />
+                      ))}
+
+                      {/* Duración en días hábiles (o semanas / meses según la escala) */}
+                      <span className="gantt-barra-duracion">{durationLabel}</span>
+
+                      {/* Predecesoras de la actividad */}
                       {act.actividades_predecesoras?.length > 0 && (
-                        <span style={{ opacity: 0.85, fontSize: '0.68rem', marginLeft: '0.3rem' }}>
+                        <span className="gantt-barra-predecesoras">
                           Pre: [{act.actividades_predecesoras.join(';')}]
                         </span>
                       )}
                     </div>
-
                   </div>
                 </div>
               );
             })}
 
-            {/* DEADLINE vertical line — ends at badge center */}
-            <div
-              style={{
-                position: 'absolute',
-                left: `calc(300px + (100% - 300px) * ${deadlinePercent / 100})`,
-                top: '0px',
-                bottom: '17px',
-                width: '2px',
-                background: '#f43f5e',
-                boxShadow: '0 0 12px #f43f5e',
-                zIndex: 10,
-                pointerEvents: 'none'
-              }}
-            />
+            {/* Líneas verticales: deadline, inicio y hoy */}
+            <div className="gantt-linea deadline" style={{ left: posicionLinea(deadlinePercent) }} />
+            <div className="gantt-linea inicio" />
+            {isTodayVisible && <div className="gantt-linea hoy" style={{ left: posicionLinea(todayPercent) }} />}
 
-            {/* INICIO vertical line — ends at badge center */}
-            <div
-              style={{
-                position: 'absolute',
-                left: '300px',
-                top: '0px',
-                bottom: '17px',
-                width: '2px',
-                background: '#f59e0b',
-                boxShadow: '0 0 10px #f59e0b',
-                zIndex: 10,
-                pointerEvents: 'none'
-              }}
-            />
-
-            {/* HOY vertical line — ends at badge center */}
-            {isTodayVisible && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: `calc(300px + (100% - 300px) * ${todayPercent / 100})`,
-                  top: '0px',
-                  bottom: '42px',
-                  width: '2px',
-                  background: '#10b981',
-                  boxShadow: '0 0 10px #10b981',
-                  zIndex: 9,
-                  pointerEvents: 'none'
-                }}
-              />
-            )}
-
-            {/* DEADLINE badge */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '5px',
-                left: `calc(300px + (100% - 300px) * ${deadlinePercent / 100})`,
-                transform: 'translateX(-100%)',
-                background: '#f43f5e',
-                color: '#ffffff',
-                fontSize: '0.65rem',
-                fontWeight: 800,
-                padding: '0.18rem 0.5rem',
-                borderRadius: '9999px',
-                whiteSpace: 'nowrap',
-                boxShadow: '0 0 12px rgba(244, 63, 94, 0.7)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-                zIndex: 12,
-                pointerEvents: 'none'
-              }}
-            >
+            {/* Insignias con el texto de cada línea */}
+            <div className="gantt-insignia con-icono deadline" style={{ left: posicionLinea(deadlinePercent) }}>
               <Flag size={10} />
               <span>DEADLINE ({deadlineDateStr})</span>
             </div>
 
-            {/* INICIO badge */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '5px',
-                left: '300px',
-                background: '#f59e0b',
-                color: '#ffffff',
-                fontSize: '0.65rem',
-                fontWeight: 800,
-                padding: '0.18rem 0.5rem',
-                borderRadius: '9999px',
-                whiteSpace: 'nowrap',
-                boxShadow: '0 0 10px rgba(245, 158, 11, 0.7)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.3rem',
-                zIndex: 12,
-                pointerEvents: 'none'
-              }}
-            >
+            <div className="gantt-insignia con-icono inicio">
               <Flag size={10} />
               <span>INICIO ({inicioDateStr})</span>
             </div>
 
-            {/* HOY badge */}
             {isTodayVisible && (
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '30px',
-                  left: `calc(300px + (100% - 300px) * ${todayPercent / 100})`,
-                  transform: 'translateX(-50%)',
-                  background: '#10b981',
-                  color: '#ffffff',
-                  fontSize: '0.65rem',
-                  fontWeight: 800,
-                  padding: '0.15rem 0.45rem',
-                  borderRadius: '9999px',
-                  whiteSpace: 'nowrap',
-                  boxShadow: '0 0 10px rgba(16, 185, 129, 0.8)',
-                  zIndex: 12,
-                  pointerEvents: 'none'
-                }}
-              >
+              <div className="gantt-insignia hoy" style={{ left: posicionLinea(todayPercent) }}>
                 HOY
               </div>
             )}
 
           </div>
-
         </div>
       </div>
 

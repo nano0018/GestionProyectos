@@ -41,7 +41,30 @@ export function avanceProgramadoActividad(actividad, fechaStr) {
 // inicio_actividad hasta alcanzar el avance_real registrado en min(fechaCorte, fin_actividad).
 // `fechaCorte` es la fecha de referencia ("hoy" por defecto, pero configurable) hasta la
 // cual se considera que el avance_real reportado es válido.
+//
+// Si la actividad tiene `historial_avance` ([{fecha, avance}]), se interpola linealmente por
+// tramos entre (inicio, 0) y los registros con fecha <= fechaCorte; después del último
+// registro se mantiene plano. Sin historial se usa la acumulación lineal descrita arriba.
 function avanceRealActividad(actividad, fechaStr, fechaCorte) {
+  const registros = (actividad.historial_avance || [])
+    .filter((r) => r.fecha <= fechaCorte)
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  if (registros.length > 0) {
+    if (fechaStr < actividad.inicio_actividad) return 0;
+    const puntos = [{ fecha: actividad.inicio_actividad, avance: 0 }, ...registros];
+    let prev = puntos[0];
+    for (const pt of puntos.slice(1)) {
+      if (fechaStr <= pt.fecha) {
+        const span = toDate(pt.fecha).getTime() - toDate(prev.fecha).getTime();
+        if (span <= 0) return clamp(Number(pt.avance) || 0, 0, 100);
+        const frac = (toDate(fechaStr).getTime() - toDate(prev.fecha).getTime()) / span;
+        return clamp(prev.avance + frac * (pt.avance - prev.avance), 0, 100);
+      }
+      prev = pt;
+    }
+    return clamp(Number(prev.avance) || 0, 0, 100);
+  }
+
   const inicio = toDate(actividad.inicio_actividad);
   const fin = toDate(actividad.fin_actividad);
   const fecha = toDate(fechaStr);
@@ -151,3 +174,7 @@ export function calcularCurvaS(actividades, opts = {}) {
       };
     });
 }
+
+// Avance del registro más reciente (por fecha) de un historial; 0 si está vacío.
+export const ultimoAvance = (historial) =>
+  historial?.length ? [...historial].sort((a, b) => a.fecha.localeCompare(b.fecha)).at(-1).avance : 0;

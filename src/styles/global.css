@@ -91,7 +91,7 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-main);
   min-height: 100vh;
-  line-height: 1.6;
+  line-height: 1.2;
   background-image: 
     radial-gradient(circle at 15% 15%, var(--body-gradient-1) 0%, transparent 40%),
     radial-gradient(circle at 85% 85%, var(--body-gradient-2) 0%, transparent 40%);
@@ -367,4 +367,1739 @@ h1, h2, h3, h4, h5, h6 {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(99, 102, 241, 0.5);
+}
+
+/* ======================================================
+   COMPONENTES COMPARTIDOS (modales y formularios)
+   ====================================================== */
+
+/* Modal: franja superior con título (izquierda) y botón cerrar (derecha) */
+.modal-encabezado {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-glass);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Icono + texto alineados en fila (título del modal, cabeceras) */
+.grupo-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.modal-titulo {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modal-cerrar {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+/* Modal: contenido principal, con los campos apilados */
+.modal-cuerpo {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+/* Modal: fila de botones Cancelar / Guardar alineada a la derecha */
+.modal-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* Mensaje de error de validación dentro de un modal */
+.alerta-error {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fda4af;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+/* Botón de icono para eliminar un elemento de una lista */
+.boton-icono-peligro {
+  background: none;
+  border: none;
+  color: #f43f5e;
+  cursor: pointer;
+  display: flex;
+}
+
+/* Dos campos de formulario lado a lado */
+.rejilla-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Texto de ayuda bajo un campo / descripción de un modal */
+.texto-ayuda {
+  font-size: 0.8rem;
+  color: var(--text-subtle);
+  margin: 0;
+}
+
+.texto-secundario {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ======================================================
+   TABLA DE ACTIVIDADES (ActivityList)
+   ====================================================== */
+
+.tabla-actividades {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 0.5rem;
+}
+
+.tabla-actividades th {
+  padding: 0.75rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: left;
+}
+
+.tabla-actividades th.columna-acciones,
+.tabla-actividades td.columna-acciones {
+  text-align: right;
+}
+
+.fila-actividad {
+  transition: all 0.2s ease;
+}
+
+.fila-actividad td {
+  padding: 1rem;
+}
+
+.celda-id {
+  font-weight: 800;
+  color: #a5b4fc;
+  font-size: 0.85rem;
+}
+
+.celda-nombre {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-main);
+}
+
+.celda-fecha {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Icono + valor en una línea (fecha con su icono de calendario) */
+.fecha-con-icono {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Celda que se edita al hacer clic (el cursor depende del permiso, ver .editable) */
+.editable {
+  cursor: pointer;
+}
+
+.valor-editable {
+  border-bottom: 1px dashed var(--border-glass);
+}
+
+.avance-editable {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Edición inline: columna con la fila de inputs y debajo el error */
+.edicion-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.edicion-inline-campos {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.edicion-inline-error {
+  font-size: 0.7rem;
+  color: #f43f5e;
+}
+
+.input-fecha-compacto {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-glass);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text-main);
+  color-scheme: dark;
+}
+
+.boton-icono {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.15rem;
+  display: flex;
+  align-items: center;
+}
+
+.boton-icono.color-ok { color: #10b981; }
+.boton-icono.color-peligro { color: #f43f5e; }
+
+.acciones-fila {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+
+.boton-accion-fila {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.78rem;
+}
+
+/* Barra de progreso con su porcentaje a la derecha */
+.barra-avance {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 110px;
+}
+
+.barra-avance-pista {
+  flex: 1;
+  height: 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.barra-avance-relleno {
+  height: 100%;
+  border-radius: 4px;
+}
+
+.barra-avance-valor {
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 32px;
+  text-align: right;
+}
+
+/* Estado vacío: aún no hay actividades */
+.estado-vacio {
+  text-align: center;
+  padding: 3rem;
+  background: rgba(17, 24, 39, 0.4);
+  border-radius: 16px;
+}
+
+.estado-vacio-titulo {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.estado-vacio-texto {
+  font-size: 0.85rem;
+  color: var(--text-subtle);
+  margin-top: 0.2rem;
+}
+
+/* ======================================================
+   DIAGRAMA DE GANTT (GanttChart)
+   ====================================================== */
+
+.panel-grafico {
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Cabecera: título a la izquierda, selector de escala a la derecha */
+.gantt-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.gantt-controles {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+/* Selector de escala: etiqueta + pastillas Días / Semanas / Meses */
+.gantt-escala {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gantt-escala-titulo {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.gantt-escala-pastillas {
+  display: flex;
+  background: var(--bg-glass);
+  padding: 0.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-glass);
+}
+
+.gantt-escala-boton {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gantt-escala-boton.activo {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #fff;
+}
+
+/* Botones de exportación (no salen en el PNG/PDF: data-export-ignore) */
+.fila-exportar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.boton-exportar {
+  color: #fff;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+}
+
+.boton-exportar.png {
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+}
+
+.boton-exportar.pdf {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.35);
+}
+
+/* Contenedor con scroll horizontal y lienzo de ancho mínimo */
+.gantt-desplazable {
+  overflow-x: auto;
+  padding-bottom: 0.75rem;
+}
+
+.gantt-lienzo {
+  min-width: 720px;
+}
+
+/* Fila de encabezado: columna de nombres + marcas de la escala de tiempo */
+.gantt-encabezado {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.gantt-encabezado-titulo {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  align-self: flex-end;
+}
+
+.gantt-marcas {
+  position: relative;
+  height: 28px;
+  width: 100%;
+}
+
+/* Etiqueta de una marca de la escala (su `left` en % va inline) */
+.gantt-marca {
+  position: absolute;
+  bottom: 4px;
+  line-height: 1.2;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.gantt-marca-tick {
+  display: block;
+  width: 1px;
+  height: 5px;
+  background: var(--border-active);
+  margin-top: 2px;
+}
+
+/* Contenedor de todas las filas; las líneas y flechas se posicionan sobre él */
+.gantt-filas {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.85rem;
+  position: relative;
+  padding-bottom: 3.5rem;
+}
+
+/* Capa SVG con las flechas de dependencia */
+.gantt-flechas {
+  position: absolute;
+  left: 300px;
+  top: 0;
+  width: calc(100% - 300px);
+  pointer-events: none;
+  z-index: 3;
+  overflow: visible;
+}
+
+/* Fila de una actividad: nombre (300px) + pista con la barra */
+.gantt-fila {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  align-items: center;
+}
+
+.gantt-etiqueta {
+  padding-right: 0.75rem;
+}
+
+.gantt-etiqueta-id {
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 0.85rem;
+  margin-right: 0.4rem;
+}
+
+.gantt-etiqueta-nombre {
+  font-size: 0.82rem;
+  color: var(--text-main);
+  font-weight: 500;
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* Pista horizontal donde se dibuja la barra de la actividad */
+.gantt-pista {
+  position: relative;
+  background: var(--bg-glass);
+  border-radius: 8px;
+  border: 1px solid var(--border-glass);
+  overflow: visible;
+}
+
+/* Línea vertical de la cuadrícula (su `left` en % va inline) */
+.gantt-guia {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border-glass);
+  pointer-events: none;
+}
+
+/* Barra de la actividad (su `left`, `width` y `cursor` van inline) */
+.gantt-barra {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  background: linear-gradient(90deg, #6366f1 0%, #06b6d4 100%);
+  border-radius: 6px;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.6rem;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  user-select: none;
+  touch-action: none;
+  z-index: 2;
+}
+
+/* Asas de los extremos de la barra para cambiar inicio / fin */
+.gantt-asa {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  z-index: 3;
+  touch-action: none;
+}
+
+.gantt-asa.inicio { left: 0; }
+.gantt-asa.fin { right: 0; }
+
+.gantt-barra-duracion {
+  pointer-events: none;
+}
+
+.gantt-barra-predecesoras {
+  opacity: 0.85;
+  font-size: 0.68rem;
+  margin-left: 0.3rem;
+}
+
+/* Líneas verticales de INICIO, DEADLINE y HOY (su `left` va inline) */
+.gantt-linea {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  pointer-events: none;
+}
+
+.gantt-linea.inicio {
+  left: 300px;
+  bottom: 17px;
+  background: #f59e0b;
+  box-shadow: 0 0 10px #f59e0b;
+  z-index: 10;
+}
+
+.gantt-linea.deadline {
+  bottom: 17px;
+  background: #f43f5e;
+  box-shadow: 0 0 12px #f43f5e;
+  z-index: 10;
+}
+
+.gantt-linea.hoy {
+  bottom: 42px;
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981;
+  z-index: 9;
+}
+
+/* Insignias con el texto de cada línea (su `left` va inline salvo INICIO) */
+.gantt-insignia {
+  position: absolute;
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  border-radius: 9999px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 12;
+}
+
+.gantt-insignia.con-icono {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.18rem 0.5rem;
+}
+
+.gantt-insignia.inicio {
+  bottom: 5px;
+  left: 300px;
+  background: #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.7);
+}
+
+.gantt-insignia.deadline {
+  bottom: 5px;
+  transform: translateX(-100%);
+  background: #f43f5e;
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.7);
+}
+
+.gantt-insignia.hoy {
+  bottom: 30px;
+  transform: translateX(-50%);
+  background: #10b981;
+  padding: 0.15rem 0.45rem;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.8);
+}
+
+/* ======================================================
+   PÁGINA DE PROYECTOS Y DETALLE (ProjectDashboard)
+   ====================================================== */
+
+.pagina-principal {
+  flex: 1;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+/* Aviso de modo demostración (sin Supabase configurado) */
+.banner-demo {
+  padding: 1rem 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-left: 4px solid #f59e0b;
+}
+
+.banner-demo-contenido {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.banner-demo-titulo {
+  color: var(--accent-amber);
+  font-size: 0.9rem;
+}
+
+.banner-demo-boton {
+  font-size: 0.8rem;
+  padding: 0.4rem 0.8rem;
+  white-space: nowrap;
+}
+
+/* Detalle de proyecto: botón volver + panel de cabecera */
+.proyecto-detalle {
+  margin-bottom: 2rem;
+}
+
+.proyecto-volver {
+  margin-bottom: 1.25rem;
+  font-size: 0.85rem;
+}
+
+.proyecto-cabecera {
+  padding: 1.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.proyecto-insignias {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.3rem;
+}
+
+.proyecto-titulo {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.proyecto-descripcion {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.proyecto-duracion {
+  font-size: 0.85rem;
+  color: var(--accent-emerald);
+  margin-top: 0.35rem;
+  font-weight: 600;
+}
+
+/* Botones pequeños junto a la duración (Editar plazo / Festivos) */
+.proyecto-duracion .btn-secondary {
+  margin-left: 0.4rem;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.proyecto-duracion .btn-secondary:first-of-type {
+  margin-left: 0.75rem;
+}
+
+.proyecto-acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Selector de vista: Tabla / Diagrama Gantt / Curva S */
+.conmutador-vista {
+  display: flex;
+  background: var(--bg-glass);
+  padding: 0.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-glass);
+}
+
+.conmutador-vista button {
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.conmutador-vista button.activo {
+  background: var(--primary);
+  color: #fff;
+}
+
+.acciones-actividad {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.acciones-actividad .btn-secondary,
+.acciones-actividad .btn-primary {
+  font-size: 0.85rem;
+}
+
+.boton-importar-excel {
+  border-color: rgba(16, 185, 129, 0.4);
+  color: var(--accent-emerald);
+}
+
+/* Lista de proyectos: título + buscador */
+.proyectos-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.proyectos-titulo {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.proyectos-subtitulo {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.buscador {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+}
+
+.buscador-icono {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.buscador .input-field {
+  padding-left: 2.4rem;
+}
+
+.rejilla-proyectos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.5rem;
+}
+
+.proyectos-vacio {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.proyectos-vacio-titulo {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.proyectos-vacio-texto {
+  font-size: 0.88rem;
+  color: var(--text-subtle);
+  max-width: 400px;
+  margin: 0.5rem auto 1.5rem;
+}
+
+/* Panel con la tabla de actividades */
+.panel-actividades {
+  padding: 1.5rem;
+}
+
+.panel-actividades-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.panel-actividades-titulo {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+/* ======================================================
+   CURVA S (CurvaS)
+   ====================================================== */
+
+.curva-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+/* Insignias de avance programado, real y desviación */
+.curva-insignias {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+/* Insignia de desviación (color, fondo y borde van inline según el signo) */
+.curva-desviacion {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.28rem 0.65rem;
+  border-radius: 9999px;
+}
+
+/* Filas de controles bajo la cabecera */
+.curva-corte,
+.curva-acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.curva-corte-titulo {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.curva-input-fecha {
+  font-size: 0.78rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text-main);
+  color-scheme: dark;
+}
+
+.curva-input-fecha.corte { border: 1px solid rgba(16, 185, 129, 0.4); }
+.curva-input-fecha.marcador { border: 1px solid rgba(245, 158, 11, 0.4); }
+
+.curva-boton-hoy {
+  background: transparent;
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.curva-boton-marcador {
+  background: transparent;
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.curva-separador {
+  width: 1px;
+  height: 20px;
+  background: var(--border-glass);
+  margin: 0 0.25rem;
+}
+
+/* Leyenda: línea de color + texto */
+.curva-leyenda {
+  display: flex;
+  gap: 1.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.curva-leyenda-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.curva-leyenda-linea {
+  width: 18px;
+  height: 3px;
+  display: inline-block;
+  border-radius: 2px;
+}
+
+.curva-desplazable {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.curva-lienzo {
+  min-width: 720px;
+}
+
+.curva-svg {
+  display: block;
+  overflow: visible;
+}
+
+/* Recuadro flotante con los valores de un punto de la curva */
+.curva-tooltip {
+  background: var(--modal-bg);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  padding: 0.5rem 0.65rem;
+  font-size: 11px;
+  font-family: inherit;
+  line-height: 1.55;
+  box-shadow: var(--modal-shadow);
+}
+
+.curva-tooltip-fecha {
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ======================================================
+   FORMULARIOS Y MODALES DE ACCESO / PROYECTO
+   ====================================================== */
+
+/* Modal con contenido simple (sin apilado de campos) */
+.modal-cuerpo-simple {
+  padding: 1.5rem;
+}
+
+.modal-titulo-chico {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modal-pie {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-glass);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Campo de formulario con un icono a la izquierda dentro del input */
+.campo-con-icono {
+  position: relative;
+}
+
+.campo-icono {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.campo-con-icono .input-field {
+  padding-left: 2.4rem;
+}
+
+/* Botón con aspecto de enlace (cambiar entre iniciar sesión y registrarse) */
+.boton-enlace {
+  background: none;
+  border: none;
+  color: #a5b4fc;
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.boton-centrado {
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.auth-pie {
+  margin-top: 1.25rem;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.auth-formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Recuadro con el UUID del usuario activo (modal de sesión) */
+.tarjeta-uuid {
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 10px;
+  padding: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.tarjeta-uuid-etiqueta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.tarjeta-uuid-valor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+}
+
+.tarjeta-uuid-valor code {
+  font-size: 0.78rem;
+  color: #a5b4fc;
+}
+
+.boton-copiar {
+  background: none;
+  border: none;
+  color: #a5b4fc;
+  cursor: pointer;
+}
+
+.alerta-error.espaciada {
+  margin-bottom: 1rem;
+}
+
+/* Gestión de accesos: recuadro del propietario */
+.tarjeta-propietario {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 10px;
+  padding: 0.85rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tarjeta-propietario-etiqueta {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #6ee7b7;
+}
+
+.tarjeta-propietario code {
+  font-size: 0.78rem;
+  color: #a7f3d0;
+}
+
+.formulario-autorizar {
+  margin-bottom: 1.5rem;
+}
+
+.formulario-autorizar-fila {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.alerta-error.chica {
+  padding: 0.6rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  margin-bottom: 0.75rem;
+}
+
+.lista-autorizados {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.autorizado-fila {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.85rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid var(--border-glass);
+}
+
+.autorizado-datos {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.autorizado-datos code {
+  font-size: 0.8rem;
+  color: var(--text-main);
+}
+
+.boton-revocar {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.lista-vacia {
+  text-align: center;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+  color: var(--text-subtle);
+  font-size: 0.85rem;
+}
+
+.subtitulo-modal {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.ayuda-campo {
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+  margin-top: 0.3rem;
+  display: block;
+}
+
+.modal-acciones.separada {
+  margin-top: 0.5rem;
+}
+
+/* Modal de aviso (p. ej. iniciar sesión requerido) */
+.modal-aviso {
+  text-align: center;
+  padding: 2rem;
+}
+
+.modal-aviso p {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.modal-aviso .btn-secondary {
+  margin-top: 1rem;
+}
+
+/* ======================================================
+   TARJETA DE PROYECTO (ProjectCard)
+   ====================================================== */
+
+.tarjeta-proyecto {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+}
+
+.tarjeta-proyecto-insignias {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+}
+
+.tarjeta-proyecto-etiquetas {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge-neutra {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.tarjeta-proyecto-menu {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.tarjeta-proyecto-menu .btn-secondary,
+.tarjeta-proyecto-menu .btn-danger {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.tarjeta-proyecto-titulo {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.4rem;
+  line-height: 1.3;
+}
+
+/* Descripción limitada a 2 líneas */
+.tarjeta-proyecto-descripcion {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-bottom: 1.25rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tarjeta-proyecto-pie {
+  border-top: 1px solid var(--border-glass);
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tarjeta-proyecto-colaboradores {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+}
+
+.tarjeta-proyecto-pie .btn-primary {
+  font-size: 0.82rem;
+  padding: 0.45rem 0.9rem;
+}
+
+/* ======================================================
+   BARRA SUPERIOR (Navbar)
+   ====================================================== */
+
+.barra-superior {
+  border-radius: 0;
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.barra-superior-contenido {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Marca: logo + nombre de la aplicación */
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.marca-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+}
+
+.marca-titulo {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.marca-subtitulo {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Controles de la derecha: estado de Supabase, nuevo proyecto, tema y sesión */
+.barra-acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.barra-acciones .boton-estado-bd {
+  font-size: 0.82rem;
+  padding: 0.45rem 0.85rem;
+}
+
+.barra-acciones .boton-nuevo-proyecto {
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+}
+
+.barra-acciones .boton-iniciar-sesion {
+  font-size: 0.85rem;
+}
+
+/* Usuario con sesión: avatar, correo, id abreviado y botón salir */
+.usuario-activo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--bg-glass);
+  padding: 0.35rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-glass);
+}
+
+.usuario-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: #a5b4fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.usuario-datos {
+  display: flex;
+  flex-direction: column;
+}
+
+.usuario-email {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-main);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usuario-id {
+  font-size: 0.68rem;
+  color: var(--text-subtle);
+  font-family: monospace;
+}
+
+.boton-salir {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.3rem;
+  display: flex;
+  align-items: center;
+}
+
+/* ======================================================
+   INSTALADOR SQL (SqlSetupModal)
+   ====================================================== */
+
+.sql-icono {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Aviso con los pasos para activar Supabase */
+.sql-instrucciones {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.sql-instrucciones-texto {
+  font-size: 0.85rem;
+  color: #fcd34d;
+}
+
+.sql-instrucciones-texto ol {
+  margin-left: 1.2rem;
+  margin-top: 0.4rem;
+  line-height: 1.5;
+}
+
+.sql-cabecera-codigo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.sql-cabecera-codigo .input-label {
+  margin: 0;
+}
+
+.sql-boton-copiar {
+  font-size: 0.8rem;
+  padding: 0.35rem 0.75rem;
+}
+
+.sql-codigo {
+  background: #090d16;
+  border: 1px solid var(--border-glass);
+  border-radius: 10px;
+  padding: 1rem;
+  font-size: 0.78rem;
+  color: #a5b4fc;
+  max-height: 320px;
+  overflow-y: auto;
+  font-family: monospace;
+  line-height: 1.4;
+}
+
+.modal-pie .btn-primary {
+  font-size: 0.85rem;
+}
+
+/* ======================================================
+   IMPORTACIÓN DESDE EXCEL (ActivityExcelModal)
+   ====================================================== */
+
+/* Dos tarjetas lado a lado: descargar plantilla / subir archivo */
+.excel-tarjetas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.excel-tarjeta {
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.excel-tarjeta.plantilla {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.excel-tarjeta.subir {
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.excel-tarjeta-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 0.4rem;
+}
+
+.excel-tarjeta.plantilla .excel-tarjeta-titulo { color: #6ee7b7; }
+.excel-tarjeta.subir .excel-tarjeta-titulo { color: #a5b4fc; }
+
+.excel-tarjeta-texto {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.excel-tarjeta-boton {
+  margin-top: 1rem;
+  width: 100%;
+  justify-content: center;
+  font-size: 0.82rem;
+}
+
+.excel-tarjeta.plantilla .excel-tarjeta-boton {
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #6ee7b7;
+}
+
+.excel-tarjeta-boton.subir {
+  cursor: pointer;
+}
+
+.alerta-error.con-icono {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Vista previa de las filas leídas del Excel */
+.excel-previa-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.excel-previa-titulo {
+  margin: 0;
+  color: #10b981;
+}
+
+.excel-previa-nota {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.excel-previa-tabla-contenedor {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border-glass);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.excel-previa-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.excel-previa-tabla thead tr {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--border-glass);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.excel-previa-tabla tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.excel-previa-tabla th,
+.excel-previa-tabla td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.excel-previa-tabla .col-id { font-weight: 700; color: #a5b4fc; }
+.excel-previa-tabla .col-nombre { color: var(--text-main); font-weight: 600; }
+.excel-previa-tabla .col-predecesoras { color: #fcd34d; }
+.excel-previa-tabla .col-dependientes { color: #a5b4fc; }
+.excel-previa-tabla .col-fechas { color: var(--text-muted); white-space: nowrap; }
+.excel-previa-tabla .col-avance { color: #6ee7b7; font-weight: 600; }
+
+.modal-pie.con-acciones {
+  gap: 0.75rem;
+}
+
+/* ======================================================
+   FORMULARIO DE ACTIVIDAD (ActivityFormModal)
+   ====================================================== */
+
+/* Nombre (ancho flexible) + ID (ancho fijo) */
+.rejilla-nombre-id {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  gap: 1rem;
+}
+
+.etiqueta-con-icono {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.campo-corto {
+  max-width: 160px;
+}
+
+/* Texto explicativo bajo la etiqueta de un campo */
+.ayuda-seccion {
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+  margin-bottom: 0.5rem;
+}
+
+.selector-vacio {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+/* Lista con casillas para elegir predecesoras / dependientes */
+.selector-actividades {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid var(--border-glass);
+}
+
+.selector-opcion {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+/* Campo numérico del traslape junto a cada predecesora marcada */
+.input-traslape {
+  width: 52px;
+  margin-left: auto;
+  font-size: 0.75rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-glass);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text-main);
+}
+
+/* ======================================================
+   MODALES DE REGISTROS (avance real, festivos)
+   ====================================================== */
+
+/* Fila "campo + campo + botón añadir" */
+.rejilla-agregar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.rejilla-agregar.con-avance {
+  grid-template-columns: 1fr 120px auto;
+}
+
+.boton-agregar {
+  height: 42px;
+}
+
+.aviso-vacio {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px dashed var(--border-glass);
+}
+
+.lista-registros {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fila-registro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid var(--border-glass);
+  font-size: 0.85rem;
+}
+
+.registro-fecha {
+  color: var(--text-muted);
+}
+
+.registro-valor {
+  font-weight: 700;
+  color: #10b981;
+}
+
+.fila-botones {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.texto-mensaje {
+  font-size: 0.78rem;
+  color: var(--text-muted);
 }
